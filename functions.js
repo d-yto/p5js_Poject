@@ -10,34 +10,30 @@ function randomDirection() {
     // (its length/magnitude is exactly 1), which is useful for consistent movement speed.
     return { x: directionX, y: directionY };
 }
+function isColliding(object1, object2){
+    let distanceX = object1.x -object2.x;
+    let distanceY = object1.y -object2.y;
+    let distance = Math.sqrt(distanceX^2 + distanceY^2)
+    return distance < (object1.size + object2.size);
+}
 
-function createChild(){
-    circle(childX,childY, 12)
-    fill(17,100,30)
-    
-
-    if(stride <=0){
-        direction = randomDirection()
-        stride = floor(random(10,30))
+function touchingBoundary(objectX, objectY, directionX, directionY){
+    if(objectX >400){
+        directionX *=-1
+        objectX = 400
+    } else if(objectX<0){
+        directionX *=-1
+        objectX = 0
     }
-    
-    childX += direction.x*data.createStats.child.Vel
-    childY += direction.y*data.createStats.child.Vel
-    stride--;
-
-    if(childX > 400){
-        direction.x *=-1
-        childX = 400
-    } else if(childX<0){
-        direction.x *=-1
-        childX = 0
-    }
-    if(childY > 400){
-        direction.y *=-1
-        childY = 400
-    } else if(childY<0){
-        direction.y *=-1
-        childY = 0
+    if(objectY >400){
+        directionY *=-1
+        objectY = 400
+    } else if(objectY<0){
+        directionY *=-1
+        objectY = 0
     }
 }
 
+function kidCollision(){
+    
+}

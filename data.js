@@ -1,17 +1,7 @@
 let data ={
+    kids:[],
     
     createStats:{
-        child:{
-            size: 7,
-            Vel:0.7,
-            str:3,
-            store:1,
-            pos:{x:200,
-                y:200,
-            },
-            age:[],
-        },
-        
         adult:{
             size:20,
             Vel:3,
@@ -32,19 +22,57 @@ let data ={
             },
         }
     },
-    children:[],
 }
-class childs{
+class child{
     constructor(){
         this.x = random(0,400)
         this.y = random(0,400)
         this.direction = randomDirection()
-        this.stride = floor.random(10,30)
+        this.stride = floor(random(10,200))
         this.vel = 0.7
-        this.ID = data.children.length+1
+        this.ID = data.kids.length+1
         this.age = 0
         this.str = 3
         this.store = 1
+        this.size = 12
+    }
+    update(){
+        fill (174,118,216)
+        circle(this.x,this.y,this.size)
+        if(this.stride<=0){
+            this.direction = randomDirection()
+            this.stride = floor(random(10,200))
+        }
+        this.x += this.direction.x*this.vel
+        this.y += this.direction.y*this.vel
+        this.stride--;
+
+        
+/*         if(this.x >400){
+            this.direction.x *=-1
+            this.x = 400
+        } else if(this.x<0){
+            this.direction.x *=-1
+            this.x = 0
+        }
+        if(this.y >400){
+            this.direction.y *=-1
+            this.y = 400
+        } else if(this.y<0){
+            this.direction.y *=-1
+            this.y = 0
+        } */
+       touchingBoundary(this.x, this.y, this.direction.x, this.direction.y,)
+        for (let i = 0;i< data.kids.length; i++){
+            for (let j = 0;j<data.kids.length; j++){
+                let kid1 = data.kids[i]
+                let kid2 = data.kids[j]
+                if(isColliding(kid1,kid2)){
+                    kidCollision(i,j);
+                }
+            }
+        }   
+
     }
 }
 let winHeight = 400;
