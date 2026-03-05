@@ -17,20 +17,20 @@ function isColliding(object1, object2){
     return distance < (object1.size + object2.size);
 }
 
-function touchingBoundary(objectX, objectY, directionX, directionY){
-    if(objectX >400){
-        directionX *=-1
-        objectX = 400
-    } else if(objectX<0){
-        directionX *=-1
-        objectX = 0
+function touchingBoundary(obj){
+    if(obj.x >400){
+        obj.direction.x *=-1
+        obj.x = 400
+    } else if(obj.x <0){
+        obj.direction.x *=-1
+        obj.x= 0
     }
-    if(objectY >400){
-        directionY *=-1
-        objectY = 400
-    } else if(objectY<0){
-        directionY *=-1
-        objectY = 0
+    if(obj.y >400){
+        obj.direction.y *=-1
+       obj.y = 400
+    } else if(obj.y<0){
+        obj.direction.y *=-1
+        obj.y = 0
     }
 }
 

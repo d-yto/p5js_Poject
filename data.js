@@ -62,7 +62,7 @@ class child{
             this.direction.y *=-1
             this.y = 0
         } */
-       touchingBoundary(this.x, this.y, this.direction.x, this.direction.y,)
+       touchingBoundary(this)
         for (let i = 0;i< data.kids.length; i++){
             for (let j = 0;j<data.kids.length; j++){
                 let kid1 = data.kids[i]
