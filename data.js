@@ -1,5 +1,6 @@
 let data ={
     kids:[],
+    collisions:[],
     
     createStats:{
         adult:{
@@ -39,39 +40,26 @@ class child{
     update(){
         fill (174,118,216)
         circle(this.x,this.y,this.size)
-        if(this.stride<=0){
-            this.direction = randomDirection()
+        /* if(this.stride<=0){
+        this.direction = randomDirection()
             this.stride = floor(random(10,200))
-        }
+        } */
         this.x += this.direction.x*this.vel
         this.y += this.direction.y*this.vel
-        this.stride--;
+/*         this.stride--; */
 
-        
-/*         if(this.x >400){
-            this.direction.x *=-1
-            this.x = 400
-        } else if(this.x<0){
-            this.direction.x *=-1
-            this.x = 0
-        }
-        if(this.y >400){
-            this.direction.y *=-1
-            this.y = 400
-        } else if(this.y<0){
-            this.direction.y *=-1
-            this.y = 0
-        } */
        touchingBoundary(this)
-        for (let i = 0;i< data.kids.length; i++){
-            for (let j = 0;j<data.kids.length; j++){
-                let kid1 = data.kids[i]
-                let kid2 = data.kids[j]
-                if(isColliding(kid1,kid2)){
-                    kidCollision(i,j);
-                }
-            }
-        }   
+       for (let i = data.kids.length - 1; i >= 0; i--) {
+        for (let j = i - 1; j >= 0; j--) {
+          let kid1 = data.kids[i];
+          let kid2 = data.kids[j];
+      
+          // Check if both objects exist (in case of async removal)
+          if (kid1 && kid2 && isColliding(kid1, kid2)) {
+            kidCollision(kid1, kid2);
+          }
+        }
+      }
 
     }
 }
