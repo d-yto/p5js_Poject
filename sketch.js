@@ -12,4 +12,16 @@ function draw() {
     for (let i of data.kids){
         i.update();
     }
+
+    for (let i = data.kids.length - 1; i >= 0; i--) {
+        for (let j = i - 1; j >= 0; j--) {
+            let kid1 = data.kids[i];
+            let kid2 = data.kids[j];
+  
+            if (kid1 && kid2 && isColliding(kid1, kid2)) {
+            kidCollision(kid1, kid2);
+            }
+        }
+    }
+
 }
