@@ -24,42 +24,38 @@ let data ={
         }
     },
 }
+
 class child{
     constructor(){
         this.x = random(0,400)
         this.y = random(0,400)
         this.direction = randomDirection()
         this.stride = floor(random(10,200))
-        this.vel = 0.7
+        this.vel = 0.3
         this.ID = data.kids.length+1
         this.age = 0
         this.str = 3
         this.store = 1
-        this.size = 12
+        this.size = 8
+        this.wait = floor(random(1,4))
     }
     update(){
         fill (174,118,216)
         circle(this.x,this.y,this.size)
-        /* if(this.stride<=0){
-        this.direction = randomDirection()
-            this.stride = floor(random(10,200))
-        } */
-        this.x += this.direction.x*this.vel
-        this.y += this.direction.y*this.vel
-/*         this.stride--; */
 
-       touchingBoundary(this)
-       for (let i = data.kids.length - 1; i >= 0; i--) {
-        for (let j = i - 1; j >= 0; j--) {
-          let kid1 = data.kids[i];
-          let kid2 = data.kids[j];
+        kidMovement(this) //moves the kid
+        
+        touchingBoundary(this)
+        for (let i = data.kids.length - 1; i >= 0; i--) {
+            for (let j = i - 1; j >= 0; j--) {
+                let kid1 = data.kids[i];
+                let kid2 = data.kids[j];
       
-          // Check if both objects exist (in case of async removal)
-          if (kid1 && kid2 && isColliding(kid1, kid2)) {
-            kidCollision(kid1, kid2);
-          }
+                if (kid1 && kid2 && isColliding(kid1, kid2)) {
+                kidCollision(kid1, kid2);
+                }
+            }
         }
-      }
 
     }
 }
