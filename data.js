@@ -27,11 +27,11 @@ let data ={
 
 class child{
     constructor(){
-        this.x = random(0,400)
-        this.y = random(0,400)
+        this.x = random(0,winWidth)
+        this.y = random(0,winHeight)
         this.direction = randomDirection()
-        this.stride = floor(random(10,200))
-        this.vel = 0.3
+        this.stride = floor(random(10,kidstride))
+        this.vel = random(0.3,0.7)
         this.ID = data.kids.length+1
         this.age = 0
         this.str = 3
@@ -59,5 +59,6 @@ class child{
 
     }
 }
-let winHeight = 400;
-let winWidth = 400;
+let winHeight = 500;
+let winWidth = 500;
+let kidstride =1000

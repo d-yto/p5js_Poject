@@ -70,7 +70,7 @@ function kidCollision(object1,object2){
 function kidMovement(obj){
     if(obj.stride<=0){
             obj.direction = randomDirection()
-            obj.stride = floor(random(1,200))
+            obj.stride = floor(random(0,kidstride))
 
         }
             obj.x += obj.direction.x*obj.vel
