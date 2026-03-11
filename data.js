@@ -1,55 +1,63 @@
+
 let data ={
     kids:[],
     collisions:[],
-    createStats:{
-        adult:{
-            size:20,
-            Vel:3,
-            str:12,
-            store:8,
-            pos:{x:Math.random(0,400),
-                y:Math.random(0,400),
-            },
-            age:[Math.random(18,64)],
-        },
-        dog:{
-            size:10,
-            vel:4,
-            str:6,
-            store:0,
-            pos:{x:Math.random(0,400),
-                y:Math.random(0,400),
-            },
-        }
-    },
+    adults:[],
 }
+
 
 class child{
     constructor(){
         this.x = random(0,winWidth)
         this.y = random(0,winHeight)
-        this.direction = randomDirection()
-        this.stride = floor(random(10,kidstride))
         this.vel = random(0.3,0.7)
-        this.ID = data.kids.length+1
+        this.direction = randomDirection()
+        this.stride = floor(random(10,stride))
+        this.ID = crypto.randomUUID();
         this.age = 0
         this.str = 3
         this.store = 1
         this.size = 8
+        this.type = "kid"
     }
     update(){
         fill (174,118,216)
         circle(this.x,this.y,this.size)
 
-        kidMovement(this) //moves the kid
+        movement(this) //moves the kid
         
         touchingBoundary(this)//checks if the kid is touching boundary
         
 
     }
 }
+
+class adult{
+    constructor(){
+        this.x = random(0,winWidth)
+        this.y = random(0,winHeight)
+        this.vel = random(0.4,1.1)
+        this.direction = randomDirection()
+        this.stride = floor(random(10,stride))
+        this.ID = crypto.randomUUID();
+        this.age = floor(random(18,85));
+        this.str = 15
+        this.store = 5
+        this.size = 12
+        this.type = "adult"
+    }
+    update(){
+        fill (20, 152, 186)
+        circle(this.x,this.y,this.size)
+
+        movement(this) //moves the obj
+        
+        touchingBoundary(this)//checks if the obj is touching boundary
+        
+
+    }
+}
 let winHeight = 500;
 let winWidth = 500;
-let kidstride =1000
-let cursorX = pmouseX
-let cursorY = pmouseY
+let stride = 1000;
+
