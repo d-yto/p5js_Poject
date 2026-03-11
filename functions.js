@@ -2,8 +2,8 @@ function createGrid(people,cellsize){
     let grid = new Map()
     
     for(let i of people){
-        let cellX = Math.floor(i.x + (i.size / 2)/cellsize)
-        let cellY = Math.floor(i.y + (i.size / 2)/cellsize)
+        let cellX = Math.floor((i.x + i.size / 2)/cellsize)
+        let cellY = Math.floor((i.y + i.size / 2)/cellsize)
         let key = `${cellX},${cellY}`
         if (!grid.has(key)){
             grid.set(key,[])
@@ -96,24 +96,30 @@ function handleCollision(object1,object2){
 function collisionCheck(people){
     const cellsize = 50
     const grid = createGrid(people, cellsize)
+    const checked = new Set()
 
     for(let i of people){
-            let cellX = Math.floor(i.x + (i.size / 2)/cellsize)
-            let cellY = Math.floor(i.y + (i.size / 2)/cellsize)
-    }
-    
-    for (let i = people.length - 1; i >= 0; i--) {
-        for (let j = i - 1; j >= 0; j--) {
+            let cellX = Math.floor((i.x + i.size / 2)/cellsize)
+            let cellY = Math.floor((i.y + i.size / 2)/cellsize)
+            
+                for (let ox=-1;ox <= 1; ox++){
+                    for(let oy = -1; oy <= 1; oy++){
+                        let key = `${cellX+ox},${cellY+oy}`
+                        if(!grid.has(key)) continue;
 
-            let p1 = people[i];
-            let p2 = people[j];
-
-            if (p1 && p2 && isColliding(p1, p2)) {
-                handleCollision(p1, p2);
+                        for (let e of grid.get(key)){
+                            if(e === i) continue;
+                            let pairKey = i.ID < e.ID ? `${i.ID},${e.ID}` : `${e.ID},${i.ID}`;
+                            if(checked.has(pairKey))continue;
+                            checked.add(pairKey)
+                            if(isColliding(i, e)){
+                                handleCollision(i, e)
+                            } 
+                        } 
+                        
+                    }
+                }
             }
-
-        }
-    }
 }
 
 function movement(obj){
@@ -127,4 +133,12 @@ function movement(obj){
             obj.stride--;
 
 
+}
+
+function updateHunger(i){
+    if (frameCount % 120 === 0){
+        i.hunger -= i.hungerRate
+        console.log(`${i.ID} Hunger: ${i.hunger}`)
+    }
+    if (i.hunger<=0)death(i)
 }

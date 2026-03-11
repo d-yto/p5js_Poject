@@ -45,6 +45,9 @@ class adult{
         this.store = 5
         this.size = 12
         this.type = "adult"
+        this.hunger = 100
+        this.maxHunger = 100
+        this.hungerRate = 1.2
     }
     update(){
         fill (20, 152, 186)
@@ -53,7 +56,7 @@ class adult{
         movement(this) //moves the obj
         
         touchingBoundary(this)//checks if the obj is touching boundary
-        
+        updateHunger(this)
 
     }
 }
