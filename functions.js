@@ -139,6 +139,42 @@ function updateHunger(i){
     if (frameCount % 120 === 0){
         i.hunger -= i.hungerRate
         console.log(`${i.ID} Hunger: ${i.hunger}`)
+        return i.hunger
     }
     if (i.hunger<=0)death(i)
+        if (i.hunger>100)i.hunger = i.maxHunger
+
+}
+function death(i){
+    if (i.type=== "kid"){
+        let kidIndex = data.kids.indexOf(i) 
+        data.kids.splice(kidIndex,1)
+
+    }
+    if (i.type==="adult"){
+        let adultIndex = data.adults.indexOf(i)
+        data.adults.splice(adultIndex,1)
+
+    }
+         
+}
+
+function rotUpdate(i){
+    if (frameCount % 120 === 0){
+        i.rotTime -= i.rotRate
+        console.log(`Rot Duration: ${i.rotTime}`)
+        return i.rotTime
+    }
+    if (i.rotTime <= 0) rotAway(i)
+}
+
+function rotAway(i){
+    if(i.rotTime <= 0){
+        let foodIndex = data.foods.indexOf(i)
+        data.foods.splice(foodIndex,1)
+    }
+}
+
+function eat(){
+
 }

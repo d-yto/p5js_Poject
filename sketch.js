@@ -13,10 +13,13 @@ function setup() {
 }
 function draw() {
     background(51);
+    const all = [...data.kids, ...data.adults, ...data.foods]
     const people = [...data.kids, ...data.adults]
-    for (let i of people){
+    for (let i of all){
         i.update();
     }
     collisionCheck(people)
-
+    if (frameCount%200 === 0){
+        data.foods.push(new food(...foodTypes.carrot))
+    }
 }

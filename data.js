@@ -3,9 +3,12 @@ let data ={
     kids:[],
     collisions:[],
     adults:[],
+    foods:[]
 }
 
-
+let foodTypes = {
+    carrot:["carrot",[245, 73, 39], 7, 6, 9, 0.9]
+}
 class child{
     constructor(){
         this.x = random(0,winWidth)
@@ -23,12 +26,12 @@ class child{
     update(){
         fill (174,118,216)
         circle(this.x,this.y,this.size)
-
+        
         movement(this) //moves the kid
         
         touchingBoundary(this)//checks if the kid is touching boundary
         
-
+        
     }
 }
 
@@ -52,15 +55,36 @@ class adult{
     update(){
         fill (20, 152, 186)
         circle(this.x,this.y,this.size)
-
+        
         movement(this) //moves the obj
         
         touchingBoundary(this)//checks if the obj is touching boundary
         updateHunger(this)
-
+        
     }
 }
+
+class food{
+    constructor(inputFoodName,inputColor,inputSize,inputHunger,inputRotTime, inputRotRate){
+        this.foodName = inputFoodName
+        this.x = random(0,winWidth)
+        this.y = random(0,winHeight)
+        this.color = inputColor
+        this.size = inputSize
+        this.hunger = inputHunger
+        this.rotTime = inputRotTime
+        this.rotRate = inputRotRate
+    }
+    update(){
+        fill (this.color)
+        circle(this.x,this.y,this.size)
+        rotUpdate(this)
+    }
+}
+
+
+
+
 let winHeight = 500;
 let winWidth = 500;
 let stride = 1000;
-
