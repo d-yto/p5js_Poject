@@ -175,6 +175,31 @@ function rotAway(i){
     }
 }
 
-function eat(){
+function eat(people){
+    const cellsize = 50
+    const grid = createGrid(data.foods, cellsize)
+    
+    for(let i of people){
+        let cellX = Math.floor((i.x + i.size / 2)/cellsize)
+        let cellY = Math.floor((i.y + i.size / 2)/cellsize)
 
+        for (let ox=-1;ox <= 1; ox++){
+            for(let oy = -1; oy <= 1; oy++){
+                let key = `${cellX+ox},${cellY+oy}`
+                if(!grid.has(key)) continue;
+                for (let foodItem of grid.get(key)){
+                    if (isColliding(i,foodItem)){
+                        eatFood(i,foodItem)
+                    }
+                } 
+                
+            }
+        }
+    }
+}
+
+function eatFood(person, foodItem){
+    let foodIndex = data.foods.indexOf(foodItem)
+    data.foods.splice(food, 1)
+    person.hunger += foodItem.hunger
 }

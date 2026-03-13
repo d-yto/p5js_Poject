@@ -22,4 +22,5 @@ function draw() {
     if (frameCount%200 === 0){
         data.foods.push(new food(...foodTypes.carrot))
     }
+    eat(people, data.foods)
 }

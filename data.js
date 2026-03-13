@@ -74,6 +74,7 @@ class food{
         this.hunger = inputHunger
         this.rotTime = inputRotTime
         this.rotRate = inputRotRate
+        this.ID = crypto.randomUUID();
     }
     update(){
         fill (this.color)
