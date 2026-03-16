@@ -22,6 +22,7 @@ class child{
         this.store = 1
         this.size = 8
         this.type = "kid"
+        this.noiseOffset = random(1000, 9000);
     }
     update(){
         fill (174,118,216)
@@ -51,6 +52,7 @@ class adult{
         this.hunger = 100
         this.maxHunger = 100
         this.hungerRate = 1.2
+        this.noiseOffset = random(1000, 9000);
     }
     update(){
         fill (20, 152, 186)
@@ -88,4 +90,4 @@ class food{
 
 let winHeight = 500;
 let winWidth = 500;
-let stride = 1000;
+let stride = 1;

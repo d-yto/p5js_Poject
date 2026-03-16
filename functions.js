@@ -123,14 +123,12 @@ function collisionCheck(people){
 }
 
 function movement(obj){
-    if(obj.stride<=0){
-            obj.direction = randomDirection()
-            obj.stride = floor(random(0,stride))
+    
 
-        }
-            obj.x += obj.direction.x
-            obj.y += obj.direction.y
-            obj.stride--;
+            mapNoise(obj)
+
+            obj.x += obj.direction.x * obj.vel
+            obj.y += obj.direction.y * obj.vel
 
 
 }
@@ -200,6 +198,27 @@ function eat(people){
 
 function eatFood(person, foodItem){
     let foodIndex = data.foods.indexOf(foodItem)
-    data.foods.splice(food, 1)
+    data.foods.splice(foodIndex, 1)
     person.hunger += foodItem.hunger
+}
+
+function mapNoise(i){
+    let noiseScale = 0.005;
+    let nt = 0.005 * frameCount;
+
+    let nx = noise(noiseScale * i.x + i.noiseOffset, nt) * 2 - 1;
+    let ny = noise(noiseScale * i.y + i.noiseOffset + 1000, nt) * 2 - 1;
+
+    let len = sqrt(nx * nx + ny * ny);
+    if (len === 0) return;
+
+    let steerStrength = 0.05;
+    i.direction.x += (nx / len - i.direction.x) * steerStrength;
+    i.direction.y += (ny / len - i.direction.y) * steerStrength;
+
+    // renormalize so speed stays consistent
+    let dLen = sqrt(i.direction.x * i.direction.x + i.direction.y * i.direction.y);
+    if (dLen === 0) return;
+    i.direction.x /= dLen;
+    i.direction.y /= dLen;
 }

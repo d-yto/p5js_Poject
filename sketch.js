@@ -2,6 +2,7 @@
 
 function setup() {
     let canvas = createCanvas(winWidth, winHeight);
+    pixelDensity(1);
     for(let i =0; i<8;i++){
 
         data.kids.push(new child());
@@ -19,7 +20,7 @@ function draw() {
         i.update();
     }
     collisionCheck(people)
-    if (frameCount%200 === 0){
+    if (frameCount%100 === 0){
         data.foods.push(new food(...foodTypes.carrot))
     }
     eat(people, data.foods)
