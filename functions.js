@@ -207,7 +207,14 @@ function eat(people){
 function eatFood(person, foodItem){
     let foodIndex = data.foods.indexOf(foodItem)
     data.foods.splice(foodIndex, 1)
-    person.hunger += foodItem.hunger
+    if (person.hunger <person.maxHunger){
+        person.hunger += foodItem.hunger
+
+    }
+    if(person.hunger>= person.maxHunger){
+        person.hunger = person.maxHunger
+    }
+
 }
 
 function mapNoise(i){
@@ -220,8 +227,18 @@ function mapNoise(i){
     let len = sqrt(nx * nx + ny * ny);
     if (len === 0) return;
     
-    let foodPull =0.8 
+    let target = nearestFood(i)
+    if(target){
+        let tx = target.x - i.x
+        let ty = target.y - i.y
 
+        let tLenSq =(tx*tx)+(ty*ty)
+        if (tLenSq>0){
+            let tLen = Math.sqrt(tLenSq)
+            nx = (nx * 0.3) + (tx / tLen * 0.7);
+            ny = (ny * 0.3) + (ty / tLen * 0.7);
+        } 
+    }
 
 
 
@@ -270,17 +287,19 @@ function nearestFood(i){
                 for (let foodItem of grid.get(key)){
                     let dx = (i.x + i.size/2) - (foodItem.x + foodItem.size/2)
                     let dy = (i.y + i.size/2) - (foodItem.y + foodItem.size/2)
-                    let distanceSq = (dx**2) + (dy**2) 
+                    let distanceSq = (dx * dx) + (dy * dy)
                     
 
                     if (distanceSq<nearestDist){
-                        nearest = foodItem.ID
+                        nearest = foodItem
                         nearestDist = distanceSq
                     }
                 }
                 
             }
         }
-        console.log(nearest)
+        if (nearest){
+            nearest.dist = Math.sqrt(nearestDist)
+        }
         return nearest
 }

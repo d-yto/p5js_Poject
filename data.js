@@ -10,6 +10,36 @@ let data ={
 let foodTypes = {
     carrot:["carrot",[245, 73, 39], 7, 6, 9, 0.9]
 }
+
+class entity{
+    constructor(){
+        this.x = random(0,winWidth)
+        this.y = random(0,winHeight)
+        this.vel = inputVel
+        this.ID = crypto.randomUUID();
+        this.age = inputAge
+        this.str = inputStr
+        this.store = inputStore
+        this.size = inputSize
+        this.type = inputType
+        this.hunger = inputHunger
+        this.maxHunger = inputMaxHunger
+        this.hungerRate = inputHungerRate
+        this.noiseOffset = random(1000, 9000);
+        this.direction ={x:random(0,1), y:random(0,1)}
+    }
+    update(){
+        fill (174,118,216)
+        circle(this.x,this.y,this.size)
+        
+        movement(this) //moves the kid
+        
+        touchingBoundary(this)//checks if the kid is touching boundary
+        updateHunger(this)
+        
+        
+    }
+}
 class child{
     constructor(){
         this.x = random(0,winWidth)
@@ -44,7 +74,7 @@ class adult{
     constructor(){
         this.x = random(0,winWidth)
         this.y = random(0,winHeight)
-        this.vel = random(0.4,1.1)
+        this.vel = random(0.6,1.1)
         this.ID = crypto.randomUUID();
         this.age = floor(random(18,85));
         this.str = 15
@@ -94,3 +124,4 @@ class food{
 
 let winHeight = 500;
 let winWidth = 500;
+let nearest = []

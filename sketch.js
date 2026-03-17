@@ -16,11 +16,17 @@ function draw() {
     background(51);
     const people = [...data.kids, ...data.adults]
     collisionCheck(people)
-    if (frameCount%100 === 0){
+    if (frameCount%18 === 0){
         data.foods.push(new food(...foodTypes.carrot))
     }
-    eat(people)
-    const all = [...data.kids, ...data.adults, ...data.foods]
+    for(let i =0; i<people.length;i++){
+        if (frameCount%500 === 0){
+
+            console.log(`${people[i].type} Hunger:${people[i].hunger}`)
+        }
+    }
+        eat(people)
+        const all = [...data.kids, ...data.adults, ...data.foods]
     for (let i of all){
         i.update();
     }
