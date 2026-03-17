@@ -13,18 +13,7 @@ function createGrid(people,cellsize){
     return grid
 }
 
-function randomDirection() {
-    // Generate a random angle in radians (0 to 2*PI)
-    const angle = Math.random() * Math.PI * 2; //
-    
-    // Calculate the x and y components of the direction vector
-    const directionX = Math.cos(angle);
-    const directionY = Math.sin(angle);
-    
-    // The resulting vector (directionX, directionY) is a "unit vector"
-    // (its length/magnitude is exactly 1), which is useful for consistent movement speed.
-    return { x: directionX, y: directionY };
-}
+
 function isColliding(object1, object2) {
     let dx = (object1.x + object1.size/2) - (object2.x + object2.size/2);
     let dy = (object1.y + object1.size/2) - (object2.y + object2.size/2);
@@ -64,8 +53,14 @@ function handleCollision(object1,object2){
     let nx = dx/distance
     let ny = dy/distance
 
-    let relVelX = object1.direction.x - object2.direction.x
-    let relVelY = object1.direction.y - object2.direction.y
+    let v1x = object1.direction.x* object1.vel
+    let v1y = object1.direction.y* object1.vel
+    
+    let v2x = object2.direction.x* object2.vel
+    let v2y = object2.direction.y* object2.vel
+    
+    let relVelX = v1x - v2x
+    let relVelY = v1y - v2y
     let velAlongNorm = (relVelX*nx) + (relVelY*ny)
     if (velAlongNorm > 0) return;
     
@@ -80,16 +75,31 @@ function handleCollision(object1,object2){
     let e = 1
     let j = -(1+e) * velAlongNorm / invMass
 
-    object1.direction.x += (j * nx) / m1
-    object1.direction.y += (j * ny) / m1
-    object2.direction.x -= (j * nx) / m2
-    object2.direction.y -= (j * ny) / m2
+    v1x += (j * nx) / m1
+    v1y += (j * ny) / m1
+    v2x -= (j * nx) / m2
+    v2y -= (j * ny) / m2
     
+    object1.vel = sqrt(v1x * v1x + v1y * v1y)
+    if (object1.vel > 0) {
+        object1.direction.x = v1x / object1.vel
+        object1.direction.y = v1y / object1.vel
+    }
+
+    object2.vel = sqrt(v2x * v2x + v2y * v2y)
+    if (object2.vel > 0) {
+        object2.direction.x = v2x / object2.vel
+        object2.direction.y = v2y / object2.vel
+    }
+
     let overlap = (m1/2 + m2/2) - distance
     object1.x += nx * (overlap * invM1 / invMass)
     object1.y += ny * (overlap * invM1 / invMass)
     object2.x -= nx * (overlap * invM2 / invMass)
     object2.y -= ny * (overlap * invM2 / invMass)
+
+    object1.collisionCooldown = 20
+    object2.collisionCooldown = 20
 }
 
 
@@ -136,7 +146,6 @@ function movement(obj){
 function updateHunger(i){
     if (frameCount % 120 === 0){
         i.hunger -= i.hungerRate
-        console.log(`${i.ID} Hunger: ${i.hunger}`)
         return i.hunger
     }
     if (i.hunger<=0)death(i)
@@ -160,7 +169,6 @@ function death(i){
 function rotUpdate(i){
     if (frameCount % 120 === 0){
         i.rotTime -= i.rotRate
-        console.log(`Rot Duration: ${i.rotTime}`)
         return i.rotTime
     }
     if (i.rotTime <= 0) rotAway(i)
@@ -203,7 +211,7 @@ function eatFood(person, foodItem){
 }
 
 function mapNoise(i){
-    let noiseScale = 0.005;
+    let noiseScale = 0.001;
     let nt = 0.005 * frameCount;
 
     let nx = noise(noiseScale * i.x + i.noiseOffset, nt) * 2 - 1;
@@ -211,14 +219,68 @@ function mapNoise(i){
 
     let len = sqrt(nx * nx + ny * ny);
     if (len === 0) return;
+    
+    let foodPull =0.8 
 
-    let steerStrength = 0.05;
+
+
+
+    let boundMargin = 1200
+    let repulse = 0.5
+    if(i.x<boundMargin){
+        nx += repulse *(1-(i.x/boundMargin))
+    }
+    if(i.x>(winWidth-boundMargin)){
+        nx -= repulse *(1-((winWidth-i.x)/boundMargin))
+    }
+    if(i.y<boundMargin){
+        ny += repulse * (1-(i.y/boundMargin))
+    }
+    if (i.y>(winHeight-boundMargin)){
+        ny -= repulse * (1-((winHeight-i.y)/boundMargin))
+    }
+
+    let steerStrength = i.collisionCooldown > 0 ? 0.005 : 0.05;
+    if (i.collisionCooldown > 0) i.collisionCooldown--;
+
     i.direction.x += (nx / len - i.direction.x) * steerStrength;
     i.direction.y += (ny / len - i.direction.y) * steerStrength;
 
-    // renormalize so speed stays consistent
+
+
     let dLen = sqrt(i.direction.x * i.direction.x + i.direction.y * i.direction.y);
     if (dLen === 0) return;
     i.direction.x /= dLen;
     i.direction.y /= dLen;
+}
+
+function nearestFood(i){
+    const cellsize = 50
+    const grid = createGrid(data.foods, cellsize)
+    let nearest = null
+    let nearestDist = Infinity
+
+    let cellX = Math.floor((i.x + i.size / 2)/cellsize)
+        let cellY = Math.floor((i.y + i.size / 2)/cellsize)
+
+        for (let ox=-2;ox <= 2; ox++){
+            for(let oy = -2; oy <= 2; oy++){
+                let key = `${cellX+ox},${cellY+oy}`
+                if(!grid.has(key)) continue;
+                for (let foodItem of grid.get(key)){
+                    let dx = (i.x + i.size/2) - (foodItem.x + foodItem.size/2)
+                    let dy = (i.y + i.size/2) - (foodItem.y + foodItem.size/2)
+                    let distanceSq = (dx**2) + (dy**2) 
+                    
+
+                    if (distanceSq<nearestDist){
+                        nearest = foodItem.ID
+                        nearestDist = distanceSq
+                    }
+                }
+                
+            }
+        }
+        console.log(nearest)
+        return nearest
 }

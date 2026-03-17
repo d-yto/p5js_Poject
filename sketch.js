@@ -14,14 +14,14 @@ function setup() {
 }
 function draw() {
     background(51);
-    const all = [...data.kids, ...data.adults, ...data.foods]
     const people = [...data.kids, ...data.adults]
-    for (let i of all){
-        i.update();
-    }
     collisionCheck(people)
     if (frameCount%100 === 0){
         data.foods.push(new food(...foodTypes.carrot))
     }
-    eat(people, data.foods)
+    eat(people)
+    const all = [...data.kids, ...data.adults, ...data.foods]
+    for (let i of all){
+        i.update();
+    }
 }
