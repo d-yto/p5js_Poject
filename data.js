@@ -1,9 +1,8 @@
 
 let data ={
-    kids:[],
-    collisions:[],
-    adults:[],
+    people:[],
     foods:[],
+    collisions:[],
     nearestFoods:[],
 }
 let stats ={
@@ -12,7 +11,7 @@ let stats ={
         velMin:0.4,
         velMax:1.1,
         type:"adult",
-        age:Math.random(18,85),
+        get age() {  getRandomIntInclusive(18,85)  },
         str:12,
         store:8,
         size:12,
@@ -94,6 +93,7 @@ class entity{
         
         touchingBoundary(this)//checks if the kid is touching boundary
         updateHunger(this)
+        grow(this)
         
         
     }

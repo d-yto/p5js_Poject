@@ -80,13 +80,13 @@ function handleCollision(object1,object2){
     v2x -= (j * nx) / m2
     v2y -= (j * ny) / m2
     
-    object1.vel = sqrt(v1x * v1x + v1y * v1y)
+    object1.vel = Math.sqrt(v1x * v1x + v1y * v1y)
     if (object1.vel > 0) {
         object1.direction.x = v1x / object1.vel
         object1.direction.y = v1y / object1.vel
     }
 
-    object2.vel = sqrt(v2x * v2x + v2y * v2y)
+    object2.vel = Math.sqrt(v2x * v2x + v2y * v2y)
     if (object2.vel > 0) {
         object2.direction.x = v2x / object2.vel
         object2.direction.y = v2y / object2.vel
@@ -146,24 +146,12 @@ function movement(obj){
 function updateHunger(i){
     if (frameCount % 120 === 0){
         i.hunger -= i.hungerRate
-        return i.hunger
     }
-    if (i.hunger<=0)death(i)
-        if (i.hunger>100)i.hunger = i.maxHunger
+    if (i.hunger>100)i.hunger = i.maxHunger
 
 }
-function death(i){
-    if (i.type=== "kid"){
-        let kidIndex = data.kids.indexOf(i) 
-        data.kids.splice(kidIndex,1)
-
-    }
-    if (i.type==="adult"){
-        let adultIndex = data.adults.indexOf(i)
-        data.adults.splice(adultIndex,1)
-
-    }
-         
+function death(){
+    data.people = data.people.filter(p => p.hunger > 0)
 }
 
 function rotUpdate(i){
@@ -302,4 +290,44 @@ function nearestFood(i){
             nearest.dist = Math.sqrt(nearestDist)
         }
         return nearest
+}
+
+function grow(i){
+    if(frameCount%3600 === 0){
+        i.age++;
+        console.log(`Age update!`)
+    }
+}
+
+function keyReleased(){
+
+    if (key==='q'){
+        console.log(`current hunger`)
+        console.log(`-----------------`);
+        let adultTop = -Infinity
+        let adultBottom = Infinity
+        let adultAvg = 0
+        let kidTop = -Infinity
+        let kidBottom = Infinity
+        let kidAvg = 0
+        for (let i of data.people.filter( i => i.type === "adult")){
+            if(i.hunger>adultTop) adultTop = i.hunger
+            if (i.hunger<adultBottom)adultBottom = i.hunger
+            adultAvg += i.hunger
+        }
+        console.log(`Highest adult hunger: ${adultTop}`)
+        console.log(`Lowest adult hunger: ${adultBottom}`)
+        adultAvg/=data.people.filter( i => i.type === "adult").length
+        console.log(adultAvg)
+        for (let i of data.people.filter( i => i.type === "kid")){
+            if(i.hunger>kidTop) kidTop = i.hunger
+            if (i.hunger<kidBottom) kidBottom = i.hunger
+        }
+        console.log(`Highest child hunger: ${kidTop}`)
+        console.log(`Lowest child hunger: ${kidBottom}`)
+    }
+}
+
+function getRandomIntInclusive(min, max){
+    return Math.floor(Math.random()*(max - min + 1))+min
 }
