@@ -5,11 +5,11 @@ function setup() {
     pixelDensity(1);
     for(let i =0; i<8;i++){
 
-        data.kids.push(new child());
+        data.kids.push(new entity(...entityType.child));
     }
     for(let i =0; i<6;i++){
 
-        data.adults.push(new adult());
+        data.adults.push(new entity(...entityType.adult));
     }
 }
 function draw() {

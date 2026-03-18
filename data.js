@@ -6,16 +6,73 @@ let data ={
     foods:[],
     nearestFoods:[],
 }
+let stats ={
+    adult:{
+        color:[132, 102, 100],
+        velMin:0.4,
+        velMax:1.1,
+        type:"adult",
+        age:Math.random(18,85),
+        str:12,
+        store:8,
+        size:12,
+        hunger:100,
+        maxHunger:100,
+        hungerRate:0.8,
 
-let foodTypes = {
-    carrot:["carrot",[245, 73, 39], 7, 6, 9, 0.9]
+    },
+    child:{
+        color:[100, 130, 132],
+        velMin:0.3,
+        velMax:0.7,
+        type:"kid",
+        age:0,
+        str:3,
+        store:1,
+        size:8,
+        hunger:30,
+        maxHunger:30,
+        hungerRate:0.3,
+
+
+    },
+    carrotColor:[186, 98, 69],
 }
-
+let foodTypes = {
+    carrot:["carrot",stats.carrotColor, 7, 6, 9, 0.9]
+}
+let entityType = {
+    child:[
+        stats.child.type/* type */,
+        stats.child.color/* color */, 
+        stats.child.velMin/* vel min */,
+        stats.child.velMax/* vel max */,
+        stats.child.age /* age */,
+        stats.child.str/* Strength */,
+        stats.child.store/* storage */,
+        stats.child.size/* size */,
+        stats.child.hunger/* hunger */,
+        stats.child.maxHunger/* max hunger */, 
+        stats.child.hungerRate/* hunger rate */],
+    adult:[
+        stats.adult.type/* type */,
+        stats.adult.color/* color */, 
+        stats.adult.velMin/* vel min*/,
+        stats.adult.velMax/* vel max*/,
+        stats.adult.age /* age */,
+        stats.adult.str/* Strength */,
+        stats.adult.store/* storage */,
+        stats.adult.size/* size */,
+        stats.adult.hunger/* hunger */,
+        stats.adult.maxHunger/* max hunger */, 
+        stats.adult.hungerRate/* hunger rate */],
+    
+}
 class entity{
-    constructor(){
+    constructor(inputType,inputColor,inputVelMin,inputVelMax,inputAge,inputStr,inputStore,inputSize,inputHunger,inputMaxHunger,inputHungerRate){
         this.x = random(0,winWidth)
         this.y = random(0,winHeight)
-        this.vel = inputVel
+        this.vel = random(inputVelMin, inputVelMax)
         this.ID = crypto.randomUUID();
         this.age = inputAge
         this.str = inputStr
@@ -27,38 +84,10 @@ class entity{
         this.hungerRate = inputHungerRate
         this.noiseOffset = random(1000, 9000);
         this.direction ={x:random(0,1), y:random(0,1)}
+        this.color = inputColor
     }
     update(){
-        fill (174,118,216)
-        circle(this.x,this.y,this.size)
-        
-        movement(this) //moves the kid
-        
-        touchingBoundary(this)//checks if the kid is touching boundary
-        updateHunger(this)
-        
-        
-    }
-}
-class child{
-    constructor(){
-        this.x = random(0,winWidth)
-        this.y = random(0,winHeight)
-        this.vel = random(0.3,0.7)
-        this.ID = crypto.randomUUID();
-        this.age = 0
-        this.str = 3
-        this.store = 1
-        this.size = 8
-        this.type = "kid"
-        this.hunger = 30
-        this.maxHunger = 30
-        this.hungerRate = 0.3
-        this.noiseOffset = random(1000, 9000);
-        this.direction ={x:random(0,1), y:random(0,1)}
-    }
-    update(){
-        fill (174,118,216)
+        fill (this.color)
         circle(this.x,this.y,this.size)
         
         movement(this) //moves the kid
@@ -70,35 +99,6 @@ class child{
     }
 }
 
-class adult{
-    constructor(){
-        this.x = random(0,winWidth)
-        this.y = random(0,winHeight)
-        this.vel = random(0.6,1.1)
-        this.ID = crypto.randomUUID();
-        this.age = floor(random(18,85));
-        this.str = 15
-        this.store = 5
-        this.size = 12
-        this.type = "adult"
-        this.hunger = 100
-        this.maxHunger = 100
-        this.hungerRate = 0.8
-        this.noiseOffset = random(1000, 9000);
-        this.direction ={x:random(0,1), y:random(0,1)}
-        this.collisionCooldown = 0
-    }
-    update(){
-        fill (20, 152, 186)
-        circle(this.x,this.y,this.size)
-        
-        movement(this) //moves the obj
-        nearestFood(this)
-        touchingBoundary(this)//checks if the obj is touching boundary
-        updateHunger(this)
-        
-    }
-}
 
 class food{
     constructor(inputFoodName,inputColor,inputSize,inputHunger,inputRotTime, inputRotRate){
