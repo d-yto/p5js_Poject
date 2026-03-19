@@ -72,7 +72,7 @@ function handleCollision(object1,object2){
     
     
     
-    let e = 1
+    let e = 0.8
     let j = -(1+e) * velAlongNorm / invMass
     
     v1x += (j * nx) / m1
@@ -232,18 +232,28 @@ function mapNoise(i){
     
     /* Looks around for the nearest food item within the search radius. If a nearest food within the search radius exists, it blends the direction to food with the noise force.*/
     let target = nearestFood(i)
-    if(target){
+    let p = i.partner
+    if(p){
+        let px = p.x - i.x
+        let py = p.y - i.y
+        let pLenSq = (px*px) + (py*py)
+        if(pLenSq > 0){
+            let pLen = sqrt(pLenSq)
+            nx = (nx * 0.1) + (px / pLen * 0.9);
+            ny = (ny * 0.1) + (py / pLen * 0.9);
+        }
+    }else if(target){
         let tx = target.x - i.x
         let ty = target.y - i.y
-
         let tLenSq =(tx*tx)+(ty*ty)
         if (tLenSq>0){
             let tLen = Math.sqrt(tLenSq)
             /* 30% noise wandering 70% pull toward food. Adjusting these two values changes how directy entity's will make their way to the food.*/
-            nx = (nx * 0.3) + (tx / tLen * 0.7);
-            ny = (ny * 0.3) + (ty / tLen * 0.7);
+            nx = (nx * 0.35) + (tx / tLen * 0.65);
+            ny = (ny * 0.35) + (ty / tLen * 0.65);
         } 
     }
+    
 
     /* Pushes entities away from the edges of the canvas. */
     /* boundMargin is how far away the repulsion from the edge starts. */
@@ -267,7 +277,7 @@ function mapNoise(i){
     /* steerstrength dictates how quickly entitys turn towards the target direction. */
     /* after a collision, steerforce is reduced by a factor of 10 to allow for the collision to play out before noise starts pulling the entity back onto course.
     After 1/3 seconds, normal steering resumes. */
-    let steerStrength = i.collisionCooldown > 0 ? 0.005 : 0.05;
+    let steerStrength = i.collisionCooldown > 0 ? 0.004 : 0.04;
     if (i.collisionCooldown > 0) i.collisionCooldown--;
 
     /* gradually nudge entity dirction towards the comined noise, food, and boundary force. */
@@ -325,7 +335,7 @@ function grow(i){
         console.log(`Age update!`)
         if(i.age ===18 && i.type === "kid"){
             let a = stats.adult
-            i.vel = random(a.velMin, a.velMax)
+            i.vel = getRandomNumInclusive(a.velMin, a.velMax)
             i.age = 18
             i.str = a.str
             i.store = a.store
@@ -334,6 +344,7 @@ function grow(i){
             i.maxHunger = a.maxHunger
             i.hungerRate = a.hungerRate
             i.color = a.color
+            i.repRate = getRandomIntInclusive(a.repRateMin,a.repRateMax)
 
         }
     }
@@ -381,63 +392,60 @@ function getRandomNumInclusive(min, max){
     return Math.random()*(max - min + 1)+min
 }
 
-function getFreaky(people) {
+function getFreaky() {
     const cellsize = 50;
-    const grid = createGrid(people, cellsize);
+    const applicable = data.people.filter(i => i.age>17&& i.hunger>=(i.maxHunger*0.7)&&i.repRate === 0)
+    const grid = createGrid(applicable, cellsize);
     const checked = new Set();
-
-    for (let i of people) {
+    for (let i of data.people) {
         /* Reset search stats for this specific person */
-        i.nearest = null;
-        i.nearestDistSq = Infinity; 
+        let nearest = null;
+        let nearestDistSq = Infinity;
 
         let cellX = Math.floor((i.x + i.size / 2) / cellsize);
         let cellY = Math.floor((i.y + i.size / 2) / cellsize);
         /* grid check */
-        for (let ox = -1; ox <= 1; ox++) {
-            for (let oy = -1; oy <= 1; oy++) {
-                let key = `${cellX + ox},${cellY + oy}`;
-                if (!grid.has(key)) continue;
+        for (let ox=-1;ox <= 1; ox++){
+            for(let oy = -1; oy <= 1; oy++){
+                let key = `${cellX+ox},${cellY+oy}`
+                if(!grid.has(key)) continue;
+                for (let e of grid.get(key)){
+                    if(e === i) continue;
+                    let pairKey = i.ID < e.ID ? `${i.ID},${e.ID}` : `${e.ID},${i.ID}`;
+                    if(checked.has(pairKey))continue;
+                    checked.add(pairKey)
 
-                for (let e of grid.get(key)) {
-                    if (e === i) continue;
+                    let dx = (i.x + i.size/2) - (e.x + e.size/2)
+                    let dy = (i.y + i.size/2) - (e.y + e.size/2)
+                    let distanceSq = (dx * dx) + (dy * dy)
+                    
 
-                    /* Condition Check */
-                    if (i.age > 18 && e.age > 18 && 
-                        i.hunger >= (0.7 * i.maxHunger) && 
-                        e.hunger >= (0.7 * e.maxHunger) && 
-                        i.reproductionCooldown === 0 &&
-                        e.reproductionCooldown === 0
-                    ) {
-
-                        let dx = (i.x + i.size / 2) - (e.x + e.size / 2);
-                        let dy = (i.y + i.size / 2) - (e.y + e.size / 2);
-                        let distanceSq = (dx * dx) + (dy * dy);
-
-                        if (distanceSq < i.nearestDistSq) {
-                            i.nearest = e;
-                            i.nearestDistSq = distanceSq;
-                        }
+                    if (distanceSq<nearestDistSq){
+                        nearest = e
+                        nearestDistSq = distanceSq
                     }
-                }
+                } 
+            }
+            if (nearest){
+                i.partner = nearest
             }
         }
     }
-    
-    /* Final pass to convert squared distance to actual distance */
-    for (let p of people) {
-        if (p.nearest) {
-            p.dist = Math.sqrt(p.nearestDistSq);
-        }
-    }
-    /* I now want this to go to one another then call birth() */
 }
+
+
+    /* Final pass to convert squared distance to actual distance */
+
+    /* I now want this to go to one another then call birth() */
+
 
 function birth(){
     let roll = getRandomIntInclusive(1,3)
     
     if (roll === 1){
         /* Inherit from parent 1 */
+        data.people.push(new entity(...entityType.child))
+
     }
     if (roll === 2){
         /* Inherit from parent 2 */

@@ -9,7 +9,7 @@ let stats ={
     adult:{
         color:[132, 102, 100],
         velMin:0.4,
-        velMax:0.6,
+        velMax:1.1,
         type:"adult",
         get age() {  return getRandomIntInclusive(18,85)  },
         str:12,
@@ -18,24 +18,22 @@ let stats ={
         hunger:100,
         maxHunger:100,
         hungerRate:0.8,
-        repCooldownMin:0,
-        repCooldownMax:1000
+        repRateMin:0,
+        repRateMax:1000
 
     },
     child:{
         color:[100, 130, 132],
-        velMin:0.2,
-        velMax:0.4,
+        velMin:0.3,
+        velMax:0.7,
         type:"kid",
-        get age() {  return getRandomIntInclusive(0,16)  },
+        age:0,
         str:3,
         store:1,
         size:8,
         hunger:30,
         maxHunger:30,
         hungerRate:0.3,
-        repCooldownMin:Infinity,
-        repCooldownMax:Infinity,
 
 
     },
@@ -45,7 +43,7 @@ let foodTypes = {
     carrot:["carrot",stats.carrotColor, 7, 6, 9, 0.9]
 }
 let entityType = {
-    child:[
+    child: () => [
         stats.child.type/* type */,
         stats.child.color/* color */, 
         stats.child.velMin/* vel min */,
@@ -57,10 +55,9 @@ let entityType = {
         stats.child.hunger/* hunger */,
         stats.child.maxHunger/* max hunger */, 
         stats.child.hungerRate/* hunger rate */,
-        stats.child.repCooldownMin/* Reproduction cooldown Min*/,
-        stats.child.repCooldownMax/* Reproduction cooldown Max*/,
-    ],
-    adult:[
+        stats.child.repRateMin,
+        stats.child.repRateMax,],
+    adult: () =>[
         stats.adult.type/* type */,
         stats.adult.color/* color */, 
         stats.adult.velMin/* vel min*/,
@@ -72,13 +69,12 @@ let entityType = {
         stats.adult.hunger/* hunger */,
         stats.adult.maxHunger/* max hunger */, 
         stats.adult.hungerRate/* hunger rate */,
-        stats.adult.repCooldownMin/* Reproduction cooldown Min*/,
-        stats.adult.repCooldownMax/* Reproduction cooldown Max*/,
-    ],
+        stats.adult.repRateMin,
+        stats.adult.repRateMax,],
     
 }
 class entity{
-    constructor(inputType,inputColor,inputVelMin,inputVelMax,inputAge,inputStr,inputStore,inputSize,inputHunger,inputMaxHunger,inputHungerRate,inputRepCooldownMin, inputRepCooldownMax){
+    constructor(inputType,inputColor,inputVelMin,inputVelMax,inputAge,inputStr,inputStore,inputSize,inputHunger,inputMaxHunger,inputHungerRate, inputRepRateMin, inputRepRateMax ){
         this.x = random(0,winWidth)
         this.y = random(0,winHeight)
         this.vel = getRandomNumInclusive(inputVelMin, inputVelMax)
@@ -91,12 +87,14 @@ class entity{
         this.hunger = inputHunger
         this.maxHunger = inputMaxHunger
         this.hungerRate = inputHungerRate
-        this.noiseOffset = random(1000, 9000);
-        this.direction ={x:random(0,1), y:random(0,1)}
-        this.color = inputColor
+        this.noiseOffset = getRandomIntInclusive(1000, 9000);
+        this.direction ={x:random(), y:random()}
+        this.color = [...inputColor]
+        this.collisionCooldown = 0
+        this.repRate = getRandomIntInclusive(inputRepRateMin,inputRepRateMax)
         this.targetVel = this.vel
         this.dead = false
-        this.reproductionCooldown = getRandomIntInclusive(inputRepCooldownMin,inputRepCooldownMax)
+        this.partner = null
     }
     update(){
         fill (this.color)
@@ -107,7 +105,6 @@ class entity{
         touchingBoundary(this)//checks if the kid is touching boundary
         updateHunger(this)
         grow(this)
-        
         
     }
 }
@@ -138,3 +135,4 @@ class food{
 let winHeight = 500;
 let winWidth = 500;
 let nearest = []
+const applicable = data.people.filter(i => i.age>17&& i.hunger>=(i.maxHunger*0.7)&&i.repRate === 0)
