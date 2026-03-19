@@ -9,29 +9,33 @@ let stats ={
     adult:{
         color:[132, 102, 100],
         velMin:0.4,
-        velMax:1.1,
+        velMax:0.6,
         type:"adult",
-        get age() {  getRandomIntInclusive(18,85)  },
+        get age() {  return getRandomIntInclusive(18,85)  },
         str:12,
         store:8,
         size:12,
         hunger:100,
         maxHunger:100,
         hungerRate:0.8,
+        repCooldownMin:0,
+        repCooldownMax:1000
 
     },
     child:{
         color:[100, 130, 132],
-        velMin:0.3,
-        velMax:0.7,
+        velMin:0.2,
+        velMax:0.4,
         type:"kid",
-        age:0,
+        get age() {  return getRandomIntInclusive(0,16)  },
         str:3,
         store:1,
         size:8,
         hunger:30,
         maxHunger:30,
         hungerRate:0.3,
+        repCooldownMin:Infinity,
+        repCooldownMax:Infinity,
 
 
     },
@@ -52,7 +56,10 @@ let entityType = {
         stats.child.size/* size */,
         stats.child.hunger/* hunger */,
         stats.child.maxHunger/* max hunger */, 
-        stats.child.hungerRate/* hunger rate */],
+        stats.child.hungerRate/* hunger rate */,
+        stats.child.repCooldownMin/* Reproduction cooldown Min*/,
+        stats.child.repCooldownMax/* Reproduction cooldown Max*/,
+    ],
     adult:[
         stats.adult.type/* type */,
         stats.adult.color/* color */, 
@@ -64,14 +71,17 @@ let entityType = {
         stats.adult.size/* size */,
         stats.adult.hunger/* hunger */,
         stats.adult.maxHunger/* max hunger */, 
-        stats.adult.hungerRate/* hunger rate */],
+        stats.adult.hungerRate/* hunger rate */,
+        stats.adult.repCooldownMin/* Reproduction cooldown Min*/,
+        stats.adult.repCooldownMax/* Reproduction cooldown Max*/,
+    ],
     
 }
 class entity{
-    constructor(inputType,inputColor,inputVelMin,inputVelMax,inputAge,inputStr,inputStore,inputSize,inputHunger,inputMaxHunger,inputHungerRate){
+    constructor(inputType,inputColor,inputVelMin,inputVelMax,inputAge,inputStr,inputStore,inputSize,inputHunger,inputMaxHunger,inputHungerRate,inputRepCooldownMin, inputRepCooldownMax){
         this.x = random(0,winWidth)
         this.y = random(0,winHeight)
-        this.vel = random(inputVelMin, inputVelMax)
+        this.vel = getRandomNumInclusive(inputVelMin, inputVelMax)
         this.ID = crypto.randomUUID();
         this.age = inputAge
         this.str = inputStr
@@ -84,6 +94,9 @@ class entity{
         this.noiseOffset = random(1000, 9000);
         this.direction ={x:random(0,1), y:random(0,1)}
         this.color = inputColor
+        this.targetVel = this.vel
+        this.dead = false
+        this.reproductionCooldown = getRandomIntInclusive(inputRepCooldownMin,inputRepCooldownMax)
     }
     update(){
         fill (this.color)

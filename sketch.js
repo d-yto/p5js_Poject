@@ -15,7 +15,7 @@ function setup() {
 function draw() {
     background(51);
     collisionCheck(data.people)
-    if (frameCount%180 === 0){
+    if (frameCount%95 === 0){
         data.foods.push(new food(...foodTypes.carrot))
     }
         eat(data.people)
