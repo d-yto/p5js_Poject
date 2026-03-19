@@ -25,9 +25,12 @@ function draw() {
         if (i.repRate>0)i.repRate--;
     }
     death()
-    if (applicable){
-        getFreaky()
+    for (i of data.people){
 
+        if (i.applicable){
+            getFreaky()
+            
+        }
     }
     
 }
