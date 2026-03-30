@@ -96,15 +96,14 @@ class entity{
         this.dead = false
         this.partner = null
     }
-    update(){
+    update(foodGrid){
         fill (this.color)
         circle(this.x,this.y,this.size)
         
-        movement(this) //moves the kid
+        movement(this,foodGrid) //moves the kid
         
         touchingBoundary(this)//checks if the kid is touching boundary
         updateHunger(this)
-        grow(this)
         
     }
 }
@@ -122,7 +121,7 @@ class food{
         this.rotRate = inputRotRate
         this.ID = crypto.randomUUID();
     }
-    update(){
+    update(foodGrid){
         fill (this.color)
         circle(this.x,this.y,this.size)
         rotUpdate(this)
@@ -135,4 +134,3 @@ class food{
 let winHeight = 500;
 let winWidth = 500;
 let nearest = []
-const applicable = data.people.filter(i => i.age>17&& i.hunger>=(i.maxHunger*0.7)&&i.repRate === 0)
