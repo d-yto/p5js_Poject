@@ -134,9 +134,8 @@ function collisionCheck(people){
             }
 }
 
-function movement(obj){
-    if (obj.breedCheck === true) return
-    mapNoise(obj)
+function movement(obj,foodGrid){
+    mapNoise(obj,foodGrid)
     obj.x += obj.direction.x * obj.vel
     obj.y += obj.direction.y * obj.vel
     /*  */
@@ -151,14 +150,14 @@ function updateHunger(i){
     if (frameCount % 120 === 0){
         i.hunger -= i.hungerRate
     }
-    if (i.hunger>100)i.hunger = i.maxHunger
+    if (i.hunger>i.maxHunger)i.hunger = i.maxHunger
 
 }
 function death(){
     data.people = data.people.filter(p => p.hunger > 0)
 
     let old = data.people.filter(p => p.age>90)
-    for(i of old){
+    for(let i of old){
         let odds = (i.age*4)-350
         let roll = getRandomIntInclusive(1,100)
         i.dead = Boolean(roll<odds)
@@ -169,7 +168,6 @@ function death(){
 function rotUpdate(i){
     if (frameCount % 120 === 0){
         i.rotTime -= i.rotRate
-        return i.rotTime
     }
     if (i.rotTime <= 0) rotAway(i)
 }
@@ -181,9 +179,8 @@ function rotAway(i){
     }
 }
 
-function eat(people){
+function eat(people, grid){
     const cellsize = 50
-    const grid = createGrid(data.foods, cellsize)
     
     for(let i of people){
         let cellX = Math.floor((i.x + i.size / 2)/cellsize)
@@ -217,8 +214,7 @@ function eatFood(person, foodItem){
 
 }
 
-function mapNoise(i){
-    if(i.breedCheck === true) return
+function mapNoise(i,foodGrid){
     /* Sample two perlin noise values based on the entity's position & the current time.*/
     /* noisescale controls how zoomed in this noise map is-- the smaller the value, the smoother movements will be. */
     /* nt advances the noise over time so the field slowly shifts. This avoids repeated movements.*/
@@ -236,24 +232,20 @@ function mapNoise(i){
     if (len === 0) return;
     
     /* Looks around for the nearest food item within the search radius. If a nearest food within the search radius exists, it blends the direction to food with the noise force.*/
-    let target = nearestFood(i)
+    let target = nearestFood(i,foodGrid)
     let p = i.partner
     if(p){
         let px = p.x - i.x
         let py = p.y - i.y
         let pLenSq = (px*px) + (py*py)
+        if(pLenSq <= i.size * i.size){
+            birth(i, i.partner);
+            return;
+        }
         if(pLenSq > 0){
             let pLen = sqrt(pLenSq)
             nx = (nx * 0.3) + (px / pLen * 0.7);
             ny = (ny * 0.3) + (py / pLen * 0.7);
-            if (i.breedCheck === false&&p.breedCheck === false){
-
-                if (isColliding(i,p)){
-                    birth(i,p)
-                    i.breedCheck = true
-                    p.breedCheck = true
-                }
-            }
         }
     }else if(target){
         let tx = target.x - i.x
@@ -309,9 +301,8 @@ function mapNoise(i){
     i.direction.y /= dLen;
 }
 
-function nearestFood(i){
+function nearestFood(i, grid){
     const cellsize = 50
-    const grid = createGrid(data.foods, cellsize)
     let nearest = null
     let nearestDist = Infinity
 
@@ -343,23 +334,19 @@ function nearestFood(i){
 }
 
 function grow(i){
-    if(frameCount%3600 === 0){
-        i.age++;
-        console.log(`Age update!`)
-        if(i.age ===18 && i.type === "kid"){
-            let a = stats.adult
-            i.vel = getRandomNumInclusive(a.velMin, a.velMax)
-            i.age = 18
-            i.str = a.str
-            i.store = a.store
-            i.size = a.size
-            i.type = a.type
-            i.maxHunger = a.maxHunger
-            i.hungerRate = a.hungerRate
-            i.color = a.color
-            i.repRate = getRandomIntInclusive(a.repRateMin,a.repRateMax)
-
-        }
+    i.age++;
+    if(i.age ===18 && i.type === "kid"){
+        let a = stats.adult
+        i.vel = getRandomNumInclusive(a.velMin, a.velMax)
+        i.age = 18
+        i.str = a.str
+        i.store = a.store
+        i.size = a.size
+        i.type = a.type
+        i.maxHunger = a.maxHunger
+        i.hungerRate = a.hungerRate
+        i.color = a.color
+        i.repRate = getRandomIntInclusive(a.repRateMin,a.repRateMax)
     }
 }
 
@@ -439,53 +426,24 @@ function getFreaky() {
                     }
                 } 
             }
-            if (nearest){
-                i.partner = nearest
-                nearest.partner = i
-                checked.add(i.ID < nearest.ID ? `${i.ID},${nearest.ID}` : `${nearest.ID},${i.ID}`);
-            }
+        }
+        if (nearest){
+            i.partner = nearest
         }
     }
 }
 
-
-    /* Final pass to convert squared distance to actual distance */
-
-    /* I now want this to go to one another then call birth() */
-
-
-function birth(i,p){
-    let births = getRandomIntInclusive(1,100)
+function birth(i,e){
     let roll = getRandomIntInclusive(1,3)
-    
-    if (roll === 1){
-        /* Inherit from parent 1 */
-        data.people.push(new entity(...entityType.child()))
+    let child = new entity(...entityType.child())
+    child.x = (i.x + e.x) / 2
+    child.y = (i.y + e.y) / 2
+    data.people.push(child) 
+   
 
-    }
-    if (roll === 2){
-        /* Inherit from parent 2 */
-        data.people.push(new entity(...entityType.child()))
-    }
-    if (roll ===3){
-        /* Inherit an average of both parents, while having a % range for mutation up and down */
-        data.people.push(new entity(...entityType.child()))
-    }
-    i.breedCheck = false
-    i.repRate = getRandomIntInclusive(entityType.adult.repRateMin,entityType.adult.repRateMax)
-    p.breedCheck = false
-    p.repRate = getRandomIntInclusive(entityType.adult.repRateMin,entityType.adult.repRateMax)
-
+    i.repRate = getRandomIntInclusive(0,1000)
+    e.repRate = getRandomIntInclusive(0,1000)
     i.partner = null
-    p.partner = null
-    console.log("babbee made")
-
-    
-}
-
-function updateRepRate(i){
-    if (frameCount % 80 === 0 && i.repRate>0){
-        i.repRate = max(i.repRate- 20 ,0)
-        
-    }
+    e.partner = null
+    console.log(`BIRTH`)
 }
