@@ -44,7 +44,6 @@ function touchingBoundary(obj){
 }
 
 function handleCollision(object1,object2){
-    if(object1.breedCheck === true && object2.breedCheck === true) return
     let dx = (object1.x + object1.size/2) - (object2.x + object2.size/2);
     let dy = (object1.y + object1.size/2) - (object2.y + object2.size/2);
     let distanceSq = dx * dx + dy * dy;
@@ -154,8 +153,8 @@ function updateHunger(i){
 
 }
 function death(){
+    let before = data.people.length
     data.people = data.people.filter(p => p.hunger > 0)
-
     let old = data.people.filter(p => p.age>90)
     for(let i of old){
         let odds = (i.age*4)-350
@@ -163,6 +162,7 @@ function death(){
         i.dead = Boolean(roll<odds)
     }
     data.people = data.people.filter(p => p.dead === false)
+    deathToll +=(before - data.people.length)
 }
 
 function rotUpdate(i){
@@ -389,7 +389,7 @@ function getRandomIntInclusive(min, max){
     return Math.floor(Math.random()*(max - min + 1))+min
 }
 function getRandomNumInclusive(min, max){
-    return Math.random()*(max - min + 1)+min
+    return Math.random()*(max - min )+min
 }
 
 function getFreaky() {
@@ -440,6 +440,7 @@ function birth(i,e){
     let child = new entity(stats.child)
     child.x = (i.x + e.x) / 2
     child.y = (i.y + e.y) / 2
+    child.hunger = child.maxHunger*getRandomNumInclusive(0.5,0.7)
     data.people.push(child) 
     if (roll === 1){
         /* inherit from i */
@@ -452,10 +453,41 @@ function birth(i,e){
     }
 
    
-
+    i.hunger -=25
+    e.hunger -=25
     i.repRate = getRandomIntInclusive(0,1000)
     e.repRate = getRandomIntInclusive(0,1000)
     i.partner = null
     e.partner = null
     console.log(`BIRTH`)
+}
+
+function hungerBar(i){
+    let barWidth = 20
+    let barHeight = 3
+    let bx = i.x - barWidth / 2
+    let by = i.y - i.size / 2 - 6
+    let decFill = (i.hunger / i.maxHunger)
+
+    noStroke()
+    fill(80, 80, 80)
+    rect(bx, by, barWidth, barHeight)
+
+    if(decFill>0.6){
+        fill(102,204,51)
+    }
+    else if(decFill<=0.6){
+        fill(255,102,51)
+    }
+    else if(decFill<=0.2){
+        fill(186, 26, 26)
+    }
+    rect(bx, by, barWidth *decFill, barHeight)
+}
+
+function mouseClicked(){
+    if(mouseX>0 && mouseX<100 && mouseY>winHeight && mouseY<winHeight+buttonheight){
+        healthbar = !healthbar
+        
+    }
 }

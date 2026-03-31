@@ -4,11 +4,12 @@ let data ={
     foods:[],
     collisions:[],
     nearestFoods:[],
+    infoBars:[],
 }
 let stats ={
     adult:{
         color:[132, 102, 100],
-        velMin:0.4,
+        velMin:0.5,
         velMax:0.7,
         type:"adult",
         get age() {  return getRandomIntInclusive(18,85)  },
@@ -17,7 +18,7 @@ let stats ={
         size:12,
         hunger:100,
         maxHunger:100,
-        hungerRate:0.8,
+        hungerRate:0.6,
         repRateMin:0,
         repRateMax:1000
 
@@ -33,7 +34,7 @@ let stats ={
         size:8,
         hunger:30,
         maxHunger:30,
-        hungerRate:0.3,
+        hungerRate:0.6,
         repRateMin:Infinity,
         repRateMax:Infinity,
     
@@ -46,11 +47,11 @@ let stats ={
         hunger:6,
         rotTime:9,
         rotRate:0.9
-    }
+    },
+/* I think this will be the place I add the info stuff for the hunger bar */
+
 }
-let foodTypes = {
-    carrot:["carrot",stats.carrotColor, 7, 6, 9, 0.9]
-}
+
 
 class entity{
     constructor(config){
@@ -74,7 +75,6 @@ class entity{
         this.targetVel = this.vel
         this.dead = false
         this.partner = null
-        this.breedCheck = false
     }
     update(foodGrid){
         fill (this.color)
@@ -84,7 +84,7 @@ class entity{
         
         touchingBoundary(this)//checks if the kid is touching boundary
         updateHunger(this)
-        
+        if (healthbar) hungerBar(this)
     }
 }
 
@@ -110,7 +110,9 @@ class food{
 
 
 
-
 let winHeight = 500;
 let winWidth = 500;
+let buttonheight = 60
 let nearest = []
+let deathToll = 0
+let healthbar = true
