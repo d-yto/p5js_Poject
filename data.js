@@ -99,15 +99,14 @@ class entity{
         this.partner = null
         this.breedCheck = false
     }
-    update(){
+    update(foodGrid){
         fill (this.color)
         circle(this.x,this.y,this.size)
         
-        movement(this) //moves the kid
+        movement(this,foodGrid) //moves the kid
         
         touchingBoundary(this)//checks if the kid is touching boundary
         updateHunger(this)
-        grow(this)
         
     }
 }
@@ -125,7 +124,7 @@ class food{
         this.rotRate = inputRotRate
         this.ID = crypto.randomUUID();
     }
-    update(){
+    update(foodGrid){
         fill (this.color)
         circle(this.x,this.y,this.size)
         rotUpdate(this)

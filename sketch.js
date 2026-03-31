@@ -12,21 +12,32 @@ function setup() {
         data.people.push(new entity(...entityType.adult()));
     }
 }
+
+
 function draw() {
     background(51);
     collisionCheck(data.people)
+
     if (frameCount%95 === 0){
         data.foods.push(new food(...foodTypes.carrot))
     }
-        eat(data.people)
-        const all = [...data.people, ...data.foods]
+
+    if (frameCount %1800 === 0){
+        for (let i of data.people){
+            grow(i)
+        }
+    }
+
+    const foodGrid = createGrid(data.foods, 50)
+    eat(data.people,foodGrid)
+    const all = [...data.people, ...data.foods]
+
     for (let i of all){
-        i.update();
-        updateRepRate(i)
+        i.update(foodGrid);
+        if (i.repRate>0)i.repRate--;
     }
     death()
-    let applicable = data.people.filter(i => i.age>17&& i.hunger>=(i.maxHunger*0.7)&&i.repRate === 0)
-        getFreaky()
+    getFreaky()
     
 }
 
