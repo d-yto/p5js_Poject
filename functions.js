@@ -1,3 +1,4 @@
+
 function createGrid(people,cellsize){
     let grid = new Map()
     
@@ -43,6 +44,7 @@ function touchingBoundary(obj){
 }
 
 function handleCollision(object1,object2){
+    if(object1.breedCheck === true && object2.breedCheck === true) return
     let dx = (object1.x + object1.size/2) - (object2.x + object2.size/2);
     let dy = (object1.y + object1.size/2) - (object2.y + object2.size/2);
     let distanceSq = dx * dx + dy * dy;
@@ -133,6 +135,7 @@ function collisionCheck(people){
 }
 
 function movement(obj){
+    if (obj.breedCheck === true) return
     mapNoise(obj)
     obj.x += obj.direction.x * obj.vel
     obj.y += obj.direction.y * obj.vel
@@ -153,6 +156,7 @@ function updateHunger(i){
 }
 function death(){
     data.people = data.people.filter(p => p.hunger > 0)
+
     let old = data.people.filter(p => p.age>90)
     for(i of old){
         let odds = (i.age*4)-350
@@ -214,6 +218,7 @@ function eatFood(person, foodItem){
 }
 
 function mapNoise(i){
+    if(i.breedCheck === true) return
     /* Sample two perlin noise values based on the entity's position & the current time.*/
     /* noisescale controls how zoomed in this noise map is-- the smaller the value, the smoother movements will be. */
     /* nt advances the noise over time so the field slowly shifts. This avoids repeated movements.*/
@@ -239,8 +244,16 @@ function mapNoise(i){
         let pLenSq = (px*px) + (py*py)
         if(pLenSq > 0){
             let pLen = sqrt(pLenSq)
-            nx = (nx * 0.1) + (px / pLen * 0.9);
-            ny = (ny * 0.1) + (py / pLen * 0.9);
+            nx = (nx * 0.3) + (px / pLen * 0.7);
+            ny = (ny * 0.3) + (py / pLen * 0.7);
+            if (i.breedCheck === false&&p.breedCheck === false){
+
+                if (isColliding(i,p)){
+                    birth(i,p)
+                    i.breedCheck = true
+                    p.breedCheck = true
+                }
+            }
         }
     }else if(target){
         let tx = target.x - i.x
@@ -394,10 +407,10 @@ function getRandomNumInclusive(min, max){
 
 function getFreaky() {
     const cellsize = 50;
-    const applicable = data.people.filter(i => i.age>17&& i.hunger>=(i.maxHunger*0.7)&&i.repRate === 0)
+    const applicable = data.people.filter(i => i.age>17&& i.hunger>=(i.maxHunger*0.7)&&i.repRate === 0 && i.partner === null)
     const grid = createGrid(applicable, cellsize);
     const checked = new Set();
-    for (let i of data.people) {
+    for (let i of applicable) {
         /* Reset search stats for this specific person */
         let nearest = null;
         let nearestDistSq = Infinity;
@@ -428,6 +441,8 @@ function getFreaky() {
             }
             if (nearest){
                 i.partner = nearest
+                nearest.partner = i
+                checked.add(i.ID < nearest.ID ? `${i.ID},${nearest.ID}` : `${nearest.ID},${i.ID}`);
             }
         }
     }
@@ -439,19 +454,38 @@ function getFreaky() {
     /* I now want this to go to one another then call birth() */
 
 
-function birth(){
+function birth(i,p){
+    let births = getRandomIntInclusive(1,100)
     let roll = getRandomIntInclusive(1,3)
     
     if (roll === 1){
         /* Inherit from parent 1 */
-        data.people.push(new entity(...entityType.child))
+        data.people.push(new entity(...entityType.child()))
 
     }
     if (roll === 2){
         /* Inherit from parent 2 */
-
+        data.people.push(new entity(...entityType.child()))
     }
     if (roll ===3){
         /* Inherit an average of both parents, while having a % range for mutation up and down */
+        data.people.push(new entity(...entityType.child()))
+    }
+    i.breedCheck = false
+    i.repRate = getRandomIntInclusive(entityType.adult.repRateMin,entityType.adult.repRateMax)
+    p.breedCheck = false
+    p.repRate = getRandomIntInclusive(entityType.adult.repRateMin,entityType.adult.repRateMax)
+
+    i.partner = null
+    p.partner = null
+    console.log("babbee made")
+
+    
+}
+
+function updateRepRate(i){
+    if (frameCount % 80 === 0 && i.repRate>0){
+        i.repRate = max(i.repRate- 20 ,0)
+        
     }
 }

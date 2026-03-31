@@ -22,16 +22,11 @@ function draw() {
         const all = [...data.people, ...data.foods]
     for (let i of all){
         i.update();
-        if (i.repRate>0)i.repRate--;
+        updateRepRate(i)
     }
     death()
-    for (i of data.people){
-
-        if (i.applicable){
-            getFreaky()
-            
-        }
-    }
+    let applicable = data.people.filter(i => i.age>17&& i.hunger>=(i.maxHunger*0.7)&&i.repRate === 0)
+        getFreaky()
     
 }
 

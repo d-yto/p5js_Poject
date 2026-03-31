@@ -9,7 +9,7 @@ let stats ={
     adult:{
         color:[132, 102, 100],
         velMin:0.4,
-        velMax:1.1,
+        velMax:0.7,
         type:"adult",
         get age() {  return getRandomIntInclusive(18,85)  },
         str:12,
@@ -25,7 +25,7 @@ let stats ={
     child:{
         color:[100, 130, 132],
         velMin:0.3,
-        velMax:0.7,
+        velMax:0.5,
         type:"kid",
         age:0,
         str:3,
@@ -34,6 +34,8 @@ let stats ={
         hunger:30,
         maxHunger:30,
         hungerRate:0.3,
+        repRateMin:Infinity,
+        repRateMax:Infinity,
 
 
     },
@@ -95,6 +97,7 @@ class entity{
         this.targetVel = this.vel
         this.dead = false
         this.partner = null
+        this.breedCheck = false
     }
     update(){
         fill (this.color)
@@ -132,7 +135,6 @@ class food{
 
 
 
-let winHeight = 500;
-let winWidth = 500;
+let winHeight = 800;
+let winWidth = 800;
 let nearest = []
-const applicable = data.people.filter(i => i.age>17&& i.hunger>=(i.maxHunger*0.7)&&i.repRate === 0)
