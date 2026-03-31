@@ -238,8 +238,8 @@ function mapNoise(i,foodGrid){
         let px = p.x - i.x
         let py = p.y - i.y
         let pLenSq = (px*px) + (py*py)
-        if(pLenSq <= i.size * i.size){
-            birth(i, i.partner);
+        if(pLenSq <= i.size * i.size && i.ID < p.ID){
+            birth(i, p);
             return;
         }
         if(pLenSq > 0){
@@ -429,16 +429,28 @@ function getFreaky() {
         }
         if (nearest){
             i.partner = nearest
+            nearest.partner = i
         }
     }
 }
 
 function birth(i,e){
     let roll = getRandomIntInclusive(1,3)
-    let child = new entity(...entityType.child())
+
+    let child = new entity(stats.child)
     child.x = (i.x + e.x) / 2
     child.y = (i.y + e.y) / 2
     data.people.push(child) 
+    if (roll === 1){
+        /* inherit from i */
+    }
+    if(roll === 2){
+        /* inherit from e */
+    }
+    if(roll === 3){
+        /* avg both parents, include minor mutations */
+    }
+
    
 
     i.repRate = getRandomIntInclusive(0,1000)

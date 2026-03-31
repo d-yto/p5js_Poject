@@ -5,11 +5,11 @@ function setup() {
     pixelDensity(1);
     for(let i =0; i<8;i++){
 
-        data.people.push(new entity(...entityType.child()));
+        data.people.push(new entity(stats.child));
     }
     for(let i =0; i<6;i++){
 
-        data.people.push(new entity(...entityType.adult()));
+        data.people.push(new entity(stats.adult));
     }
 }
 
@@ -19,7 +19,7 @@ function draw() {
     collisionCheck(data.people)
 
     if (frameCount%95 === 0){
-        data.foods.push(new food(...foodTypes.carrot))
+        data.foods.push(new food(stats.carrot))
     }
 
     if (frameCount %1800 === 0){

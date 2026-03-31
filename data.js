@@ -36,64 +36,41 @@ let stats ={
         hungerRate:0.3,
         repRateMin:Infinity,
         repRateMax:Infinity,
-
+    
 
     },
-    carrotColor:[186, 98, 69],
+    carrot:{
+        foodName:"carrot",
+        color:[186, 98, 69],
+        size:7,
+        hunger:6,
+        rotTime:9,
+        rotRate:0.9
+    }
 }
 let foodTypes = {
     carrot:["carrot",stats.carrotColor, 7, 6, 9, 0.9]
 }
-let entityType = {
-    child: () => [
-        stats.child.type/* type */,
-        stats.child.color/* color */, 
-        stats.child.velMin/* vel min */,
-        stats.child.velMax/* vel max */,
-        stats.child.age /* age */,
-        stats.child.str/* Strength */,
-        stats.child.store/* storage */,
-        stats.child.size/* size */,
-        stats.child.hunger/* hunger */,
-        stats.child.maxHunger/* max hunger */, 
-        stats.child.hungerRate/* hunger rate */,
-        stats.child.repRateMin,
-        stats.child.repRateMax,],
-    adult: () =>[
-        stats.adult.type/* type */,
-        stats.adult.color/* color */, 
-        stats.adult.velMin/* vel min*/,
-        stats.adult.velMax/* vel max*/,
-        stats.adult.age /* age */,
-        stats.adult.str/* Strength */,
-        stats.adult.store/* storage */,
-        stats.adult.size/* size */,
-        stats.adult.hunger/* hunger */,
-        stats.adult.maxHunger/* max hunger */, 
-        stats.adult.hungerRate/* hunger rate */,
-        stats.adult.repRateMin,
-        stats.adult.repRateMax,],
-    
-}
+
 class entity{
-    constructor(inputType,inputColor,inputVelMin,inputVelMax,inputAge,inputStr,inputStore,inputSize,inputHunger,inputMaxHunger,inputHungerRate, inputRepRateMin, inputRepRateMax ){
+    constructor(config){
         this.x = random(0,winWidth)
         this.y = random(0,winHeight)
-        this.vel = getRandomNumInclusive(inputVelMin, inputVelMax)
+        this.vel = getRandomNumInclusive(config.velMin, config.velMax)
         this.ID = crypto.randomUUID();
-        this.age = inputAge
-        this.str = inputStr
-        this.store = inputStore
-        this.size = inputSize
-        this.type = inputType
-        this.hunger = inputHunger
-        this.maxHunger = inputMaxHunger
-        this.hungerRate = inputHungerRate
+        this.age = config.age
+        this.str = config.str
+        this.store = config.store
+        this.size = config.size
+        this.type = config.type
+        this.hunger = config.hunger
+        this.maxHunger = config.maxHunger
+        this.hungerRate = config.hungerRate
         this.noiseOffset = getRandomIntInclusive(1000, 9000);
         this.direction ={x:random(), y:random()}
-        this.color = [...inputColor]
+        this.color = [...config.color]
         this.collisionCooldown = 0
-        this.repRate = getRandomIntInclusive(inputRepRateMin,inputRepRateMax)
+        this.repRate = getRandomIntInclusive(config.repRateMin,config.repRateMax)
         this.targetVel = this.vel
         this.dead = false
         this.partner = null
@@ -113,15 +90,15 @@ class entity{
 
 
 class food{
-    constructor(inputFoodName,inputColor,inputSize,inputHunger,inputRotTime, inputRotRate){
-        this.foodName = inputFoodName
+    constructor(config){
+        this.foodName = config.foodName
         this.x = random(0,winWidth)
         this.y = random(0,winHeight)
-        this.color = inputColor
-        this.size = inputSize
-        this.hunger = inputHunger
-        this.rotTime = inputRotTime
-        this.rotRate = inputRotRate
+        this.color = config.color
+        this.size = config.size
+        this.hunger = config.hunger
+        this.rotTime = config.rotTime
+        this.rotRate = config.rotRate
         this.ID = crypto.randomUUID();
     }
     update(foodGrid){
@@ -134,6 +111,6 @@ class food{
 
 
 
-let winHeight = 800;
-let winWidth = 800;
+let winHeight = 500;
+let winWidth = 500;
 let nearest = []
