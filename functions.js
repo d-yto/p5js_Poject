@@ -226,6 +226,18 @@ function mapNoise(i,foodGrid){
     /* I need to subdivide this into deperate functions */
 
 
+    /* Would probably make it into 
+    
+    1. sampleNoise()
+    2. seekTargetBlend()
+    3. boundary repulsion
+    4. Apply steer
+    
+    - move birth out of mapNoise system entirely
+
+    */
+
+
     /* Sample two perlin noise values based on the entity's position & the current time.*/
     /* noisescale controls how zoomed in this noise map is-- the smaller the value, the smoother movements will be. */
     /* nt advances the noise over time so the field slowly shifts. This avoids repeated movements.*/
@@ -466,11 +478,11 @@ function birth(i,e){
     data.people.push(child) 
     if (roll === 1){
         /* inherit from i */
-        child.vel = i.vel-0.2
+        child.vel = i.vel-getRandomNumInclusive(0.1,0.33)
     }
     if(roll === 2){
         /* inherit from e */
-        child.vel = e.vel-0.2
+        child.vel = e.vel-getRandomNumInclusive(0.1,0.33)
     }
     if(roll === 3){
         /* avg both parents, include minor mutations */
