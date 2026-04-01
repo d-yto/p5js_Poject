@@ -1,5 +1,6 @@
 
 function createGrid(people,cellsize){
+    /* Creates a grid */
     let grid = new Map()
     
     for(let i of people){
@@ -14,8 +15,8 @@ function createGrid(people,cellsize){
     return grid
 }
 
-
 function isColliding(object1, object2) {
+    /* Checks if two circles are colliding. */
     let dx = (object1.x + object1.size/2) - (object2.x + object2.size/2);
     let dy = (object1.y + object1.size/2) - (object2.y + object2.size/2);
     let distanceSq = dx * dx + dy * dy;
@@ -26,6 +27,7 @@ function isColliding(object1, object2) {
 }
 
 function touchingBoundary(obj){
+    /* If touching boundary, reflects velocity perpendicular to the surface. */
     let s = (obj.size/2)
     if(obj.x >winWidth - s){
         obj.direction.x *=-1
@@ -44,6 +46,7 @@ function touchingBoundary(obj){
 }
 
 function handleCollision(object1,object2){
+    /* Circle on circle collision physics. THIS TOOK SO LONG TO DO */
     let dx = (object1.x + object1.size/2) - (object2.x + object2.size/2);
     let dy = (object1.y + object1.size/2) - (object2.y + object2.size/2);
     let distanceSq = dx * dx + dy * dy;
@@ -103,8 +106,8 @@ function handleCollision(object1,object2){
     object2.collisionCooldown = 20
 }
 
-
 function collisionCheck(people){
+    /* checks for people near one another then sends that to check if they are colliding */
     const cellsize = 50
     const grid = createGrid(people, cellsize)
     const checked = new Set()
@@ -134,7 +137,9 @@ function collisionCheck(people){
 }
 
 function movement(obj,foodGrid){
-    mapNoise(obj,foodGrid)
+    /* applies direction and velocity (which is technically magnitude)
+    nudges entities velocity closer to their normal velocity after a collision */
+mapNoise(obj,foodGrid)
     obj.x += obj.direction.x * obj.vel
     obj.y += obj.direction.y * obj.vel
     /*  */
@@ -146,6 +151,7 @@ function movement(obj,foodGrid){
 }
 
 function updateHunger(i){
+    /* Updates hunger of entity based off their hungerRate */
     if (frameCount % 120 === 0){
         i.hunger -= i.hungerRate
     }
@@ -153,6 +159,7 @@ function updateHunger(i){
 
 }
 function death(){
+    /* removes people if they are appliciable to die */
     let before = data.people.length
     data.people = data.people.filter(p => p.hunger > 0)
     let old = data.people.filter(p => p.age>90)
@@ -166,6 +173,7 @@ function death(){
 }
 
 function rotUpdate(i){
+    /* updates how rotted the food is */
     if (frameCount % 120 === 0){
         i.rotTime -= i.rotRate
     }
@@ -173,6 +181,7 @@ function rotUpdate(i){
 }
 
 function rotAway(i){
+    /* Removes food if its been out for too long and rotted. */
     if(i.rotTime <= 0){
         let foodIndex = data.foods.indexOf(i)
         data.foods.splice(foodIndex,1)
@@ -180,13 +189,14 @@ function rotAway(i){
 }
 
 function eat(people, grid){
+    /* checks which entities are eating. */
     const cellsize = 50
     
     for(let i of people){
         let cellX = Math.floor((i.x + i.size / 2)/cellsize)
         let cellY = Math.floor((i.y + i.size / 2)/cellsize)
 
-        for (let ox=-1;ox <= 1; ox++){
+        for (let ox = -1; ox <= 1; ox++){
             for(let oy = -1; oy <= 1; oy++){
                 let key = `${cellX+ox},${cellY+oy}`
                 if(!grid.has(key)) continue;
@@ -202,19 +212,20 @@ function eat(people, grid){
 }
 
 function eatFood(person, foodItem){
+    /* handles food being eaten. inputs the entity and the foodItem it eats,
+    then adds that foodItems hunger to the entities hunger */
     let foodIndex = data.foods.indexOf(foodItem)
     data.foods.splice(foodIndex, 1)
-    if (person.hunger <person.maxHunger){
-        person.hunger += foodItem.hunger
-
-    }
-    if(person.hunger>= person.maxHunger){
-        person.hunger = person.maxHunger
-    }
+    if (foodIndex === -1) return //means already eaten
+    person.hunger = Math.min(person.hunger+=foodItem.hunger, person.maxHunger)
 
 }
 
 function mapNoise(i,foodGrid){
+
+    /* I need to subdivide this into deperate functions */
+
+
     /* Sample two perlin noise values based on the entity's position & the current time.*/
     /* noisescale controls how zoomed in this noise map is-- the smaller the value, the smoother movements will be. */
     /* nt advances the noise over time so the field slowly shifts. This avoids repeated movements.*/
@@ -302,6 +313,8 @@ function mapNoise(i,foodGrid){
 }
 
 function nearestFood(i, grid){
+    /* checks nearby cells for food.
+    If no food is in range, a null value is returned. */
     const cellsize = 50
     let nearest = null
     let nearestDist = Infinity
@@ -334,6 +347,8 @@ function nearestFood(i, grid){
 }
 
 function grow(i){
+    /* Function for when each year passes, to grow by 1 year.
+    If i === 18 it transitions to being an adult */
     i.age++;
     if(i.age ===18 && i.type === "kid"){
         let a = stats.adult
@@ -351,7 +366,9 @@ function grow(i){
 }
 
 function keyReleased(){
-
+    /* Current function is for dev side, will be removed from final product. 
+    
+    Keys will likely be used to initiate certain events or open specific menus.*/
     if (key==='q'){
         console.log(`current hunger`)
         console.log(`-----------------`);
@@ -393,6 +410,8 @@ function getRandomNumInclusive(min, max){
 }
 
 function getFreaky() {
+    /* Checks for other applicable entities to reproduce with.
+    Must be >= 18, relatively full on hunger, and have a repRate of 0 to be applicable */
     const cellsize = 50;
     const applicable = data.people.filter(i => i.age>17&& i.hunger>=(i.maxHunger*0.7)&&i.repRate === 0 && i.partner === null)
     const grid = createGrid(applicable, cellsize);
@@ -435,6 +454,9 @@ function getFreaky() {
 }
 
 function birth(i,e){
+    /* Called when parents meet, initializes the childs birth.
+    Child inherits stats (currently only Vel) from one parent, or an average of both,
+    dependent on its roll */
     let roll = getRandomIntInclusive(1,3)
 
     let child = new entity(stats.child)
@@ -468,6 +490,9 @@ function birth(i,e){
 }
 
 function hungerBar(i){
+    /* Creates a hunger bar for each entity. 
+    Gives user visual feedback on the ecosystem's overall health
+    as the entity's hunger declines, the bar shrinks in size & changes color based on severity. */
     let barWidth = 20
     let barHeight = 3
     let bx = i.x - barWidth / 2
@@ -478,14 +503,14 @@ function hungerBar(i){
     fill(80, 80, 80)
     rect(bx, by, barWidth, barHeight)
 
-    if(decFill>0.6){
-        fill(102,204,51)
+    if(decFill<=0.2){
+        fill(186, 26, 26)
     }
     else if(decFill<=0.6){
         fill(255,102,51)
     }
-    else if(decFill<=0.2){
-        fill(186, 26, 26)
+    else if(decFill>0.6){
+        fill(102,204,51)
     }
     rect(bx, by, barWidth *decFill, barHeight)
 }
@@ -507,3 +532,5 @@ function giveChildrenFood(){
     - Implement pathfinding to children to give them food
     - Add data to know from the child which parents they have so we can remove the child from their children list when the child becomes 18. */
 }
+
+/* would it be possible to combine nearestFood and eat to be more efficient and improve clarity? */

@@ -19,7 +19,7 @@ function draw() {
     background(51);
     collisionCheck(data.people)
     
-    if (frameCount%95 === 0){
+    if (frameCount%80 === 0){
         data.foods.push(new food(stats.carrot))
     }
     
