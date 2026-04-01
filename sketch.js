@@ -43,6 +43,6 @@ function draw() {
     document.getElementById('deaths').textContent = `Deaths: ${deathToll}`;
 
     fill(145,145,77)
-    rect(0,winHeight, winWidth, buttonheight,)
+    rect(0,winHeight, 100, buttonheight,)
 }
 

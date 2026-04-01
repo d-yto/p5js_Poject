@@ -337,7 +337,7 @@ function grow(i){
     i.age++;
     if(i.age ===18 && i.type === "kid"){
         let a = stats.adult
-        i.vel = getRandomNumInclusive(a.velMin, a.velMax)
+        i.vel +=0.2
         i.age = 18
         i.str = a.str
         i.store = a.store
@@ -444,12 +444,15 @@ function birth(i,e){
     data.people.push(child) 
     if (roll === 1){
         /* inherit from i */
+        child.vel = i.vel-0.2
     }
     if(roll === 2){
         /* inherit from e */
+        child.vel = e.vel-0.2
     }
     if(roll === 3){
         /* avg both parents, include minor mutations */
+        child.vel = (i.vel+e.vel)/2 - getRandomNumInclusive(0.1,0.33)
     }
 
    
@@ -459,6 +462,8 @@ function birth(i,e){
     e.repRate = getRandomIntInclusive(0,1000)
     i.partner = null
     e.partner = null
+    i.children.push(child)
+    e.children.push(child)
     console.log(`BIRTH`)
 }
 
@@ -490,4 +495,15 @@ function mouseClicked(){
         healthbar = !healthbar
         
     }
+}
+
+function giveChildrenFood(){
+    /* Function for parents to give their children food. */
+
+    /* In order to implement, I would need to:
+    - Rework the eatFood() function to store excess.
+    - Implement that if store is full, they will not seek food
+    - Implement eating store food
+    - Implement pathfinding to children to give them food
+    - Add data to know from the child which parents they have so we can remove the child from their children list when the child becomes 18. */
 }

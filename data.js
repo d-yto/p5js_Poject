@@ -48,7 +48,6 @@ let stats ={
         rotTime:9,
         rotRate:0.9
     },
-/* I think this will be the place I add the info stuff for the hunger bar */
 
 }
 
@@ -75,6 +74,7 @@ class entity{
         this.targetVel = this.vel
         this.dead = false
         this.partner = null
+        this.children = []
     }
     update(foodGrid){
         fill (this.color)
@@ -107,8 +107,6 @@ class food{
         rotUpdate(this)
     }
 }
-
-
 
 let winHeight = 500;
 let winWidth = 500;
