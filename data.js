@@ -114,3 +114,4 @@ let buttonheight = 60
 let nearest = []
 let deathToll = 0
 let healthbar = true
+let worldSpeed = 1

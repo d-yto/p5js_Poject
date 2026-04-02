@@ -139,12 +139,12 @@ function collisionCheck(people){
 function movement(obj,foodGrid){
     /* applies direction and velocity (which is technically magnitude)
     nudges entities velocity closer to their normal velocity after a collision */
-mapNoise(obj,foodGrid)
-    obj.x += obj.direction.x * obj.vel
-    obj.y += obj.direction.y * obj.vel
+    mapNoise(obj,foodGrid)
+    obj.x += obj.direction.x * obj.vel * worldSpeed
+    obj.y += obj.direction.y * obj.vel * worldSpeed
     /*  */
     let recoverySpeed = 0.003
-    obj.vel += (obj.targetVel - obj.vel)*recoverySpeed
+    obj.vel += (obj.targetVel - obj.vel)*recoverySpeed * worldSpeed
 
 
 
@@ -152,7 +152,7 @@ mapNoise(obj,foodGrid)
 
 function updateHunger(i){
     /* Updates hunger of entity based off their hungerRate */
-    if (frameCount % 120 === 0){
+    if (frameCount % (120/worldSpeed) === 0){
         i.hunger -= i.hungerRate
     }
     if (i.hunger>i.maxHunger)i.hunger = i.maxHunger
@@ -174,7 +174,7 @@ function death(){
 
 function rotUpdate(i){
     /* updates how rotted the food is */
-    if (frameCount % 120 === 0){
+    if (frameCount % (120/worldSpeed) === 0){
         i.rotTime -= i.rotRate
     }
     if (i.rotTime <= 0) rotAway(i)
@@ -215,47 +215,26 @@ function eatFood(person, foodItem){
     /* handles food being eaten. inputs the entity and the foodItem it eats,
     then adds that foodItems hunger to the entities hunger */
     let foodIndex = data.foods.indexOf(foodItem)
-    data.foods.splice(foodIndex, 1)
     if (foodIndex === -1) return //means already eaten
+    data.foods.splice(foodIndex, 1)
     person.hunger = Math.min(person.hunger+=foodItem.hunger, person.maxHunger)
 
 }
 
-function mapNoise(i,foodGrid){
-
-    /* I need to subdivide this into deperate functions */
-
-
-    /* Would probably make it into 
-    
-    1. sampleNoise()
-    2. seekTargetBlend()
-    3. boundary repulsion
-    4. Apply steer
-    
-    - move birth out of mapNoise system entirely
-
-    */
-
-
-    /* Sample two perlin noise values based on the entity's position & the current time.*/
-    /* noisescale controls how zoomed in this noise map is-- the smaller the value, the smoother movements will be. */
-    /* nt advances the noise over time so the field slowly shifts. This avoids repeated movements.*/
+function sampleNoise(i){
+    /* samples perlin noise to make entity movement look more organic */
     let noiseScale = 0.001;
     let nt = 0.005 * frameCount;
-
-    /* for both x & y, uses noise() to map a force in the positive or negative direction. since noise() returns a value from 0 - 1, we remap it to -1 - 1 so the force can be in any direction*/
-    /* noiseOffset is unique per entity to avoid entity's moving in sync */
     let nx = noise(noiseScale * i.x + i.noiseOffset, nt) * 2 - 1;
     let ny = noise(noiseScale * i.y + i.noiseOffset + 1000, nt) * 2 - 1;
-
-    /* gets the length of the noise vector so we can later normalize it. */
-    /* if the length of the noise vector is 0, we bail out early to avoid inevitable error from dividing by 0 */
     let len = sqrt(nx * nx + ny * ny);
     if (len === 0) return;
-    
-    /* Looks around for the nearest food item within the search radius. If a nearest food within the search radius exists, it blends the direction to food with the noise force.*/
-    let target = nearestFood(i,foodGrid)
+
+    return { nx, ny, len };
+}
+
+function blendSeekTargets(i,nx,ny,foodGrid){
+    /* blends the perlin noise with seeking a lover and seeking food. If there is a lover, the individual will not seek food. */
     let p = i.partner
     if(p){
         let px = p.x - i.x
@@ -263,32 +242,37 @@ function mapNoise(i,foodGrid){
         let pLenSq = (px*px) + (py*py)
         if(pLenSq <= i.size * i.size && i.ID < p.ID){
             birth(i, p);
-            return;
+            return null;
         }
         if(pLenSq > 0){
             let pLen = sqrt(pLenSq)
             nx = (nx * 0.3) + (px / pLen * 0.7);
             ny = (ny * 0.3) + (py / pLen * 0.7);
         }
-    }else if(target){
-        let tx = target.x - i.x
-        let ty = target.y - i.y
-        let tLenSq =(tx*tx)+(ty*ty)
-        if (tLenSq>0){
-            let tLen = Math.sqrt(tLenSq)
-            /* 30% noise wandering 70% pull toward food. Adjusting these two values changes how directy entity's will make their way to the food.*/
-            nx = (nx * 0.35) + (tx / tLen * 0.65);
-            ny = (ny * 0.35) + (ty / tLen * 0.65);
-        } 
+    }else {
+        let target = nearestFood(i,foodGrid)
+        if(target){
+            let tx = target.x - i.x
+            let ty = target.y - i.y
+            let tLenSq =(tx*tx)+(ty*ty)
+            if (tLenSq>0){
+                let tLen = Math.sqrt(tLenSq)
+                /* 35% noise wandering 65% pull toward food. Adjusting these two values changes how directy entity's will make their way to the food.*/
+                nx = (nx * 0.35) + (tx / tLen * 0.65);
+                ny = (ny * 0.35) + (ty / tLen * 0.65);
+            } 
+        }
     }
-    
+    return { nx, ny };
+}
 
+function boundaryRepulsion(i , nx, ny){
     /* Pushes entities away from the edges of the canvas. */
     /* boundMargin is how far away the repulsion from the edge starts. */
     /* repulse is the strength at which the wall pushes back.  */
     /* the closer the entity is to the wall (the further they are in the margin), the stronger the push.  */
     let boundMargin = 120
-    let repulse = 0.5
+    let repulse = 0.8
     if(i.x<boundMargin){
         nx += repulse *(1-(i.x/boundMargin))
     }
@@ -301,7 +285,10 @@ function mapNoise(i,foodGrid){
     if (i.y>(winHeight-boundMargin)){
         ny -= repulse * (1-((winHeight-i.y)/boundMargin))
     }
+    return { nx, ny };
+}
 
+function applySteer(i, nx, ny, len){
     /* steerstrength dictates how quickly entitys turn towards the target direction. */
     /* after a collision, steerforce is reduced by a factor of 10 to allow for the collision to play out before noise starts pulling the entity back onto course.
     After 1/3 seconds, normal steering resumes. */
@@ -322,6 +309,19 @@ function mapNoise(i,foodGrid){
     if (dLen === 0) return;
     i.direction.x /= dLen;
     i.direction.y /= dLen;
+}
+
+function mapNoise(i,foodGrid){
+    /* calls all the functions to move everyone around */
+    let noise = sampleNoise(i);
+    if (!noise) return;
+
+    let blended = blendSeekTargets(i, noise.nx, noise.ny, foodGrid);
+    if (!blended) return;
+
+    let repelled = boundaryRepulsion(i, blended.nx, blended.ny);
+
+    applySteer(i, repelled.nx, repelled.ny, noise.len);
 }
 
 function nearestFood(i, grid){
@@ -370,6 +370,7 @@ function grow(i){
         i.store = a.store
         i.size = a.size
         i.type = a.type
+
         i.maxHunger = a.maxHunger
         i.hungerRate = a.hungerRate
         i.color = a.color
@@ -532,6 +533,12 @@ function mouseClicked(){
         healthbar = !healthbar
         
     }
+    if(mouseX>100 && mouseX<200 && mouseY>winHeight && mouseY<winHeight+buttonheight){
+        
+        if (worldSpeed ===1)worldSpeed*=5
+        else if (worldSpeed ===5)worldSpeed/=5
+        
+    }
 }
 
 function giveChildrenFood(){
@@ -544,5 +551,3 @@ function giveChildrenFood(){
     - Implement pathfinding to children to give them food
     - Add data to know from the child which parents they have so we can remove the child from their children list when the child becomes 18. */
 }
-
-/* would it be possible to combine nearestFood and eat to be more efficient and improve clarity? */
