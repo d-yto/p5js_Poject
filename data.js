@@ -9,8 +9,8 @@ let data ={
 let stats ={
     adult:{
         color:[132, 102, 100],
-        velMin:0.5,
-        velMax:0.7,
+        velMin:0.9,
+        velMax:1.1,
         type:"adult",
         get age() {  return getRandomIntInclusive(18,85)  },
         str:12,
@@ -25,8 +25,8 @@ let stats ={
     },
     child:{
         color:[100, 130, 132],
-        velMin:0.3,
-        velMax:0.5,
+        velMin:0.7,
+        velMax:0.9,
         type:"kid",
         age:0,
         str:3,
@@ -54,8 +54,8 @@ let stats ={
 
 class entity{
     constructor(config){
-        this.x = random(0,winWidth)
-        this.y = random(0,winHeight)
+        this.x = random(0,mapWidth)
+        this.y = random(0,mapHeight)
         this.vel = getRandomNumInclusive(config.velMin, config.velMax)
         this.ID = crypto.randomUUID();
         this.age = config.age
@@ -77,8 +77,7 @@ class entity{
         this.children = []
     }
     update(foodGrid){
-        fill (this.color)
-        circle(this.x,this.y,this.size)
+        createEntity(this)
         
         movement(this,foodGrid) //moves the kid
         
@@ -92,8 +91,8 @@ class entity{
 class food{
     constructor(config){
         this.foodName = config.foodName
-        this.x = random(0,winWidth)
-        this.y = random(0,winHeight)
+        this.x = random(0,mapWidth)
+        this.y = random(0,mapHeight)
         this.color = config.color
         this.size = config.size
         this.hunger = config.hunger
@@ -110,6 +109,16 @@ class food{
 
 let winHeight = 500;
 let winWidth = 500;
+
+let mapWidth = 2000;
+let mapHeight = 2000;
+
+let camX = 0;
+let camY = 0;
+let isdragging = false;
+let dragPosX, dragPosY;
+
+
 let buttonheight = 60
 let nearest = []
 let deathToll = 0

@@ -29,16 +29,16 @@ function isColliding(object1, object2) {
 function touchingBoundary(obj){
     /* If touching boundary, reflects velocity perpendicular to the surface. */
     let s = (obj.size/2)
-    if(obj.x >winWidth - s){
+    if(obj.x >mapWidth - s){
         obj.direction.x *=-1
-        obj.x = winWidth - s
+        obj.x = mapWidth - s
     } else if(obj.x <0+s){
         obj.direction.x *=-1
         obj.x = 0 +s
     }
-    if(obj.y >winHeight-s){
+    if(obj.y >mapHeight-s){
         obj.direction.y *=-1
-       obj.y = winHeight - s
+       obj.y = mapHeight - s
     } else if(obj.y<0+s){  
         obj.direction.y *=-1
         obj.y = 0+s
@@ -102,8 +102,8 @@ function handleCollision(object1,object2){
     object2.x -= nx * (overlap * invM2 / invMass)
     object2.y -= ny * (overlap * invM2 / invMass)
     
-    object1.collisionCooldown = 20
-    object2.collisionCooldown = 20
+    object1.collisionCooldown = 20 * worldSpeed
+    object2.collisionCooldown = 20 * worldSpeed
 }
 
 function collisionCheck(people){
@@ -158,6 +158,7 @@ function updateHunger(i){
     if (i.hunger>i.maxHunger)i.hunger = i.maxHunger
 
 }
+
 function death(){
     /* removes people if they are appliciable to die */
     let before = data.people.length
@@ -276,14 +277,14 @@ function boundaryRepulsion(i , nx, ny){
     if(i.x<boundMargin){
         nx += repulse *(1-(i.x/boundMargin))
     }
-    if(i.x>(winWidth-boundMargin)){
-        nx -= repulse *(1-((winWidth-i.x)/boundMargin))
+    if(i.x>(mapWidth-boundMargin)){
+        nx -= repulse *(1-((mapWidth-i.x)/boundMargin))
     }
     if(i.y<boundMargin){
         ny += repulse * (1-(i.y/boundMargin))
     }
-    if (i.y>(winHeight-boundMargin)){
-        ny -= repulse * (1-((winHeight-i.y)/boundMargin))
+    if (i.y>(mapHeight-boundMargin)){
+        ny -= repulse * (1-((mapHeight-i.y)/boundMargin))
     }
     return { nx, ny };
 }
@@ -292,8 +293,8 @@ function applySteer(i, nx, ny, len){
     /* steerstrength dictates how quickly entitys turn towards the target direction. */
     /* after a collision, steerforce is reduced by a factor of 10 to allow for the collision to play out before noise starts pulling the entity back onto course.
     After 1/3 seconds, normal steering resumes. */
-    let steerStrength = i.collisionCooldown > 0 ? 0.004 : 0.04;
-    if (i.collisionCooldown > 0) i.collisionCooldown--;
+    let steerStrength = i.collisionCooldown > 0 ? 0.004 * worldSpeed : 0.04 * worldSpeed;
+    if (i.collisionCooldown > 0) i.collisionCooldown -= worldSpeed;
 
     /* gradually nudge entity dirction towards the comined noise, food, and boundary force. */
     /* linear interpolation rather than snappping immediately to the new direction.
@@ -550,4 +551,37 @@ function giveChildrenFood(){
     - Implement eating store food
     - Implement pathfinding to children to give them food
     - Add data to know from the child which parents they have so we can remove the child from their children list when the child becomes 18. */
+}
+
+function createEntity(i){
+    fill(i.color)
+    circle(i.x,i.y,i.size)
+
+    let cx = i.x 
+    let cy = i.y 
+    stroke(255, 255, 255, 150);
+    strokeWeight(1);
+    line(cx, cy, cx + i.direction.x * (i.vel*14), cy + i.direction.y * (i.vel * 14));
+    noStroke();
+}
+
+function mousePressed(){
+    if (mouseY > winHeight) return;
+    isdragging = true
+    dragPosX = mouseX - camX 
+    dragPosY = mouseY - camY 
+}
+
+
+function mouseDragged(){
+    if (!isdragging) return;
+    camX = dragPosX - mouseX
+    camY = dragPosY - mouseY
+
+    camX = constrain(camX, 0, mapWidth - winWidth)
+    camY = constrain(camY, 0, mapHeight - winHeight)
+}
+
+function mouseReleased(){
+    isdragging = false;
 }

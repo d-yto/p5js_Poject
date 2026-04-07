@@ -3,11 +3,11 @@
 function setup() {
     let canvas = createCanvas(winWidth, winHeight+buttonheight);
     pixelDensity(1);
-    for(let i =0; i<8;i++){
+    for(let i =0; i<50;i++){
 
         data.people.push(new entity(stats.child));
     }
-    for(let i =0; i<6;i++){
+    for(let i =0; i<50;i++){
 
         data.people.push(new entity(stats.adult));
     }
@@ -17,6 +17,10 @@ function setup() {
 function draw() {
     
     background(51);
+
+    push();
+    translate(-camX, -camY)
+
     collisionCheck(data.people)
     
     if (frameCount%(80/worldSpeed) === 0){
@@ -35,13 +39,17 @@ function draw() {
     
     for (let i of all){
         i.update(foodGrid);
-        if (i.repRate>0)i.repRate--;;
+    }
+    if (frameCount%(10/worldSpeed) === 0){
+        for (i of all)if (i.repRate>0)i.repRate--;;
+        
     }
     death()
     getFreaky()
     
+    pop();
     document.getElementById('deaths').textContent = `Deaths: ${deathToll}`;
-
+    
     fill(130,120,62)
     rect(0,winHeight, 100, buttonheight,)
 
