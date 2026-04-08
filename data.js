@@ -54,8 +54,8 @@ let stats ={
 
 class entity{
     constructor(config){
-        this.x = random(0,mapWidth)
-        this.y = random(0,mapHeight)
+        this.x = getRandomIntInclusive(0,mapWidth)
+        this.y = getRandomIntInclusive(0,mapHeight)
         this.vel = getRandomNumInclusive(config.velMin, config.velMax)
         this.ID = crypto.randomUUID();
         this.age = config.age
@@ -91,8 +91,8 @@ class entity{
 class food{
     constructor(config){
         this.foodName = config.foodName
-        this.x = random(0,mapWidth)
-        this.y = random(0,mapHeight)
+        this.x = getRandomIntInclusive(0,mapWidth)
+        this.y = getRandomIntInclusive(0,mapHeight)
         this.color = config.color
         this.size = config.size
         this.hunger = config.hunger

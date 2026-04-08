@@ -23,8 +23,8 @@ function draw() {
 
     collisionCheck(data.people)
     
-    if (frameCount%(80/worldSpeed) === 0){
-        data.foods.push(new food(stats.carrot))
+    if (frameCount%(10/worldSpeed) === 0){
+        for(let i = 0; i<4; i++)data.foods.push(new food(stats.carrot))
     }
     
     if (frameCount %(1800/worldSpeed) === 0){

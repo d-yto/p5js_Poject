@@ -224,10 +224,10 @@ function eatFood(person, foodItem){
 
 function sampleNoise(i){
     /* samples perlin noise to make entity movement look more organic */
-    let noiseScale = 0.001;
+    let noiseScale = 0.003;
     let nt = 0.005 * frameCount;
-    let nx = noise(noiseScale * i.x + i.noiseOffset, nt) * 2 - 1;
-    let ny = noise(noiseScale * i.y + i.noiseOffset + 1000, nt) * 2 - 1;
+    let nx = noise(noiseScale * i.x + i.noiseOffset, nt) - noise(noiseScale*i.x+i.noiseOffset+500,nt);
+    let ny = noise(noiseScale * i.y + i.noiseOffset + 1000, nt) - noise(noiseScale * i.y + i.noiseOffset+1500, nt)
     let len = sqrt(nx * nx + ny * ny);
     if (len === 0) return;
 
@@ -568,8 +568,8 @@ function createEntity(i){
 function mousePressed(){
     if (mouseY > winHeight) return;
     isdragging = true
-    dragPosX = mouseX - camX 
-    dragPosY = mouseY - camY 
+    dragPosX = mouseX + camX 
+    dragPosY = mouseY + camY 
 }
 
 
