@@ -1,4 +1,5 @@
 
+
 function createGrid(people,cellsize){
     /* Creates a grid */
     let grid = new Map()
@@ -14,6 +15,12 @@ function createGrid(people,cellsize){
     }
     return grid
 }
+
+
+
+
+
+//checking functions
 
 function isColliding(object1, object2) {
     /* Checks if two circles are colliding. */
@@ -44,6 +51,92 @@ function touchingBoundary(obj){
         obj.y = 0+s
     }
 }
+
+function eat(){
+    /* checks which entities are eating. */
+    for(let i of data.people){
+        let nearest = i.nearestFood
+        if (nearest && isColliding(i, nearest)){
+            let foodIndex = data.foods.indexOf(nearest)
+            if (foodIndex !== -1){
+
+                data.foods.splice(foodIndex, 1)
+                i.hunger = Math.min(i.hunger+=nearest.hunger, i.maxHunger)
+            
+            }
+        }
+    }
+}
+
+function collisionCheck(people){
+    /* checks for people near one another then sends that to check if they are colliding */
+    const cellsize = 50
+    const grid = createGrid(people, cellsize)
+    const checked = new Set()
+    
+    for(let i of people){
+        let cellX = Math.floor((i.x + i.size / 2)/cellsize)
+        let cellY = Math.floor((i.y + i.size / 2)/cellsize)
+        
+        for (let ox=-1;ox <= 1; ox++){
+            for(let oy = -1; oy <= 1; oy++){
+                let key = `${cellX+ox},${cellY+oy}`
+                if(!grid.has(key)) continue;
+                
+                for (let e of grid.get(key)){
+                    if(e === i) continue;
+                    let pairKey = i.ID < e.ID ? `${i.ID},${e.ID}` : `${e.ID},${i.ID}`;
+                    if(checked.has(pairKey))continue;
+                    checked.add(pairKey)
+                    if(isColliding(i, e)){
+                        handleCollision(i, e)
+                    } 
+                } 
+                
+            }
+        }
+    }
+}
+
+function nearestFood(i, grid){
+    /* checks nearby cells for food.
+    If no food is in range, a null value is returned. */
+    const cellsize = 50
+    let nearest = null
+    let nearestDist = Infinity
+
+    let cellX = Math.floor((i.x + i.size / 2)/cellsize)
+        let cellY = Math.floor((i.y + i.size / 2)/cellsize)
+
+        for (let ox=-2;ox <= 2; ox++){
+            for(let oy = -2; oy <= 2; oy++){
+                let key = `${cellX+ox},${cellY+oy}`
+                if(!grid.has(key)) continue;
+                for (let foodItem of grid.get(key)){
+                    let dx = (i.x + i.size/2) - (foodItem.x + foodItem.size/2)
+                    let dy = (i.y + i.size/2) - (foodItem.y + foodItem.size/2)
+                    let distanceSq = (dx * dx) + (dy * dy)
+                    
+
+                    if (distanceSq<nearestDist){
+                        nearest = foodItem
+                        nearestDist = distanceSq
+                    }
+                }
+                
+            }
+        }
+        if (nearest){
+            nearest.dist = Math.sqrt(nearestDist)
+        }
+        i.nearestFood = nearest
+}
+
+
+
+
+
+
 
 function handleCollision(object1,object2){
     /* Circle on circle collision physics. THIS TOOK SO LONG TO DO */
@@ -106,36 +199,6 @@ function handleCollision(object1,object2){
     object2.collisionCooldown = 20 * worldSpeed
 }
 
-function collisionCheck(people){
-    /* checks for people near one another then sends that to check if they are colliding */
-    const cellsize = 50
-    const grid = createGrid(people, cellsize)
-    const checked = new Set()
-
-    for(let i of people){
-            let cellX = Math.floor((i.x + i.size / 2)/cellsize)
-            let cellY = Math.floor((i.y + i.size / 2)/cellsize)
-            
-                for (let ox=-1;ox <= 1; ox++){
-                    for(let oy = -1; oy <= 1; oy++){
-                        let key = `${cellX+ox},${cellY+oy}`
-                        if(!grid.has(key)) continue;
-
-                        for (let e of grid.get(key)){
-                            if(e === i) continue;
-                            let pairKey = i.ID < e.ID ? `${i.ID},${e.ID}` : `${e.ID},${i.ID}`;
-                            if(checked.has(pairKey))continue;
-                            checked.add(pairKey)
-                            if(isColliding(i, e)){
-                                handleCollision(i, e)
-                            } 
-                        } 
-                        
-                    }
-                }
-            }
-}
-
 function movement(obj,foodGrid){
     /* applies direction and velocity (which is technically magnitude)
     nudges entities velocity closer to their normal velocity after a collision */
@@ -152,10 +215,11 @@ function movement(obj,foodGrid){
 
 function updateHunger(i){
     /* Updates hunger of entity based off their hungerRate */
-    if (frameCount % (120/worldSpeed) === 0){
+    for(i of data.people){
+
         i.hunger -= i.hungerRate
+        if (i.hunger>i.maxHunger)i.hunger = i.maxHunger
     }
-    if (i.hunger>i.maxHunger)i.hunger = i.maxHunger
 
 }
 
@@ -173,53 +237,16 @@ function death(){
     deathToll +=(before - data.people.length)
 }
 
-function rotUpdate(i){
+function rotUpdate(){
     /* updates how rotted the food is */
-    if (frameCount % (120/worldSpeed) === 0){
+    for (i of data.foods){
         i.rotTime -= i.rotRate
-    }
-    if (i.rotTime <= 0) rotAway(i)
-}
-
-function rotAway(i){
-    /* Removes food if its been out for too long and rotted. */
-    if(i.rotTime <= 0){
-        let foodIndex = data.foods.indexOf(i)
-        data.foods.splice(foodIndex,1)
-    }
-}
-
-function eat(people, grid){
-    /* checks which entities are eating. */
-    const cellsize = 50
-    
-    for(let i of people){
-        let cellX = Math.floor((i.x + i.size / 2)/cellsize)
-        let cellY = Math.floor((i.y + i.size / 2)/cellsize)
-
-        for (let ox = -1; ox <= 1; ox++){
-            for(let oy = -1; oy <= 1; oy++){
-                let key = `${cellX+ox},${cellY+oy}`
-                if(!grid.has(key)) continue;
-                for (let foodItem of grid.get(key)){
-                    if (isColliding(i,foodItem)){
-                        eatFood(i,foodItem)
-                    }
-                } 
-                
-            }
+        if(i.rotTime <= 0){
+            let foodIndex = data.foods.indexOf(i)
+            data.foods.splice(foodIndex,1)
         }
     }
-}
-
-function eatFood(person, foodItem){
-    /* handles food being eaten. inputs the entity and the foodItem it eats,
-    then adds that foodItems hunger to the entities hunger */
-    let foodIndex = data.foods.indexOf(foodItem)
-    if (foodIndex === -1) return //means already eaten
-    data.foods.splice(foodIndex, 1)
-    person.hunger = Math.min(person.hunger+=foodItem.hunger, person.maxHunger)
-
+    data.foods = data.foods.filter(c => c.rotTime > 0)
 }
 
 function sampleNoise(i){
@@ -325,57 +352,25 @@ function mapNoise(i,foodGrid){
     applySteer(i, repelled.nx, repelled.ny, noise.len);
 }
 
-function nearestFood(i, grid){
-    /* checks nearby cells for food.
-    If no food is in range, a null value is returned. */
-    const cellsize = 50
-    let nearest = null
-    let nearestDist = Infinity
-
-    let cellX = Math.floor((i.x + i.size / 2)/cellsize)
-        let cellY = Math.floor((i.y + i.size / 2)/cellsize)
-
-        for (let ox=-2;ox <= 2; ox++){
-            for(let oy = -2; oy <= 2; oy++){
-                let key = `${cellX+ox},${cellY+oy}`
-                if(!grid.has(key)) continue;
-                for (let foodItem of grid.get(key)){
-                    let dx = (i.x + i.size/2) - (foodItem.x + foodItem.size/2)
-                    let dy = (i.y + i.size/2) - (foodItem.y + foodItem.size/2)
-                    let distanceSq = (dx * dx) + (dy * dy)
-                    
-
-                    if (distanceSq<nearestDist){
-                        nearest = foodItem
-                        nearestDist = distanceSq
-                    }
-                }
-                
-            }
-        }
-        if (nearest){
-            nearest.dist = Math.sqrt(nearestDist)
-        }
-        return nearest
-}
-
-function grow(i){
+function grow(people){
     /* Function for when each year passes, to grow by 1 year.
     If i === 18 it transitions to being an adult */
+    for (i of people){
     i.age++;
-    if(i.age ===18 && i.type === "kid"){
-        let a = stats.adult
-        i.vel +=0.2
-        i.age = 18
-        i.str = a.str
-        i.store = a.store
-        i.size = a.size
-        i.type = a.type
+        if(i.age ===18 && i.type === "kid"){
+            let a = stats.adult
+            i.vel +=0.2
+            i.age = 18
+            i.str = a.str
+            i.store = a.store
+            i.size = a.size
+            i.type = a.type
 
-        i.maxHunger = a.maxHunger
-        i.hungerRate = a.hungerRate
-        i.color = a.color
-        i.repRate = getRandomIntInclusive(a.repRateMin,a.repRateMax)
+            i.maxHunger = a.maxHunger
+            i.hungerRate = a.hungerRate
+            i.color = a.color
+            i.repRate = getRandomIntInclusive(a.repRateMin,a.repRateMax)
+        }
     }
 }
 

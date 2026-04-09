@@ -16,8 +16,8 @@ let stats ={
         str:12,
         store:8,
         size:12,
-        hunger:100,
-        maxHunger:100,
+        hunger:60,
+        maxHunger:60,
         hungerRate:0.6,
         repRateMin:0,
         repRateMax:1000
@@ -75,6 +75,7 @@ class entity{
         this.dead = false
         this.partner = null
         this.children = []
+        this.nearestFood
     }
     update(foodGrid){
         createEntity(this)
@@ -82,7 +83,6 @@ class entity{
         movement(this,foodGrid) //moves the kid
         
         touchingBoundary(this)//checks if the kid is touching boundary
-        updateHunger(this)
         if (healthbar) hungerBar(this)
     }
 }
@@ -103,7 +103,7 @@ class food{
     update(foodGrid){
         fill (this.color)
         circle(this.x,this.y,this.size)
-        rotUpdate(this)
+        
     }
 }
 

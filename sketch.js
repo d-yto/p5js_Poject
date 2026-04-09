@@ -22,19 +22,21 @@ function draw() {
     translate(-camX, -camY)
 
     collisionCheck(data.people)
-    
-    if (frameCount%(10/worldSpeed) === 0){
+    if (frameCount % (120/worldSpeed) === 0){
+        rotUpdate()
+        updateHunger()
+
+    }
+    if (frameCount%(20/worldSpeed) === 0){
         for(let i = 0; i<4; i++)data.foods.push(new food(stats.carrot))
     }
     
     if (frameCount %(1800/worldSpeed) === 0){
-        for (let i of data.people){
-            grow(i)
-        }
+            grow(data.people)
     }
     
     const foodGrid = createGrid(data.foods, 50)
-    eat(data.people,foodGrid)
+    eat()
     const all = [...data.people, ...data.foods]
     
     for (let i of all){
