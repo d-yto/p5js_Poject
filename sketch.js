@@ -32,7 +32,7 @@ function draw() {
     }
     
     if (frameCount %(1800/worldSpeed) === 0){
-            grow(data.people)
+            grow()
     }
     
     const foodGrid = createGrid(data.foods, 50)
