@@ -5,11 +5,11 @@ function setup() {
     pixelDensity(1);
     for(let i =0; i<50;i++){
 
-        data.people.push(new entity(stats.child));
+        data.people.push(new Child(stats.child));
     }
     for(let i =0; i<50;i++){
 
-        data.people.push(new entity(stats.adult));
+        data.people.push(new Adult(stats.adult));
     }
 }
 
@@ -28,7 +28,7 @@ function draw() {
 
     }
     if (frameCount%(20/worldSpeed) === 0){
-        for(let i = 0; i<4; i++)data.foods.push(new food(stats.carrot))
+        for(let i = 0; i<4; i++)data.foods.push(new Carrot(stats.carrot))
     }
     
     if (frameCount %(1800/worldSpeed) === 0){

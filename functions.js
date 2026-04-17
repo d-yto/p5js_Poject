@@ -73,7 +73,7 @@ function birth(i,e){
     dependent on its roll */
     let roll = getRandomIntInclusive(1,3)
 
-    let child = new entity(stats.child)
+    let child = new Child(stats.child)
     child.x = (i.x + e.x) / 2
     child.y = (i.y + e.y) / 2
     child.hunger = child.maxHunger*getRandomNumInclusive(0.5,0.7)
@@ -133,6 +133,49 @@ function grow(){
             i.hungerRate = a.hungerRate
             i.color = a.color
             i.repRate = getRandomIntInclusive(a.repRateMin,a.repRateMax)
+        }
+    }
+}
+function getFreaky() {
+    /* Checks for other applicable entities to reproduce with.
+    Must be >= 18, relatively full on hunger, and have a repRate of 0 to be applicable */
+    const cellsize = 50;
+    const applicable = data.people.filter(i => i.canReproduce)
+    const grid = createGrid(applicable, cellsize);
+    const checked = new Set();
+    for (let i of applicable) {
+        /* Reset search stats for this specific person */
+        let nearest = null;
+        let nearestDistSq = Infinity;
+
+        let cellX = Math.floor((i.x + i.size / 2) / cellsize);
+        let cellY = Math.floor((i.y + i.size / 2) / cellsize);
+        /* grid check */
+        for (let ox=-1;ox <= 1; ox++){
+            for(let oy = -1; oy <= 1; oy++){
+                let key = `${cellX+ox},${cellY+oy}`
+                if(!grid.has(key)) continue;
+                for (let e of grid.get(key)){
+                    if(e === i) continue;
+                    let pairKey = i.ID < e.ID ? `${i.ID},${e.ID}` : `${e.ID},${i.ID}`;
+                    if(checked.has(pairKey))continue;
+                    checked.add(pairKey)
+
+                    let dx = (i.x + i.size/2) - (e.x + e.size/2)
+                    let dy = (i.y + i.size/2) - (e.y + e.size/2)
+                    let distanceSq = (dx * dx) + (dy * dy)
+                    
+
+                    if (distanceSq<nearestDistSq){
+                        nearest = e
+                        nearestDistSq = distanceSq
+                    }
+                } 
+            }
+        }
+        if (nearest){
+            i.partner = nearest
+            nearest.partner = i
         }
     }
 }
@@ -420,7 +463,7 @@ function eat(){
 
                 data.foods.splice(foodIndex, 1)
                 if(i.hunger>= i.maxHunger){
-                    i.store = Math.min(i.store+=nearest.hunger, store)
+                    i.store = Math.min(i.store+=nearest.hunger, i.store)
                     return
                 }
                 i.hunger = Math.min(i.hunger+=nearest.hunger, i.maxHunger)
@@ -449,54 +492,6 @@ function updateHunger(){
     }
 
 }
-
-
-
-/* **REPRODUCTION** */
-function getFreaky() {
-    /* Checks for other applicable entities to reproduce with.
-    Must be >= 18, relatively full on hunger, and have a repRate of 0 to be applicable */
-    const cellsize = 50;
-    const applicable = data.people.filter(i => i.age>17&& i.hunger>=(i.maxHunger*0.7)&&i.repRate === 0 && i.partner === null)
-    const grid = createGrid(applicable, cellsize);
-    const checked = new Set();
-    for (let i of applicable) {
-        /* Reset search stats for this specific person */
-        let nearest = null;
-        let nearestDistSq = Infinity;
-
-        let cellX = Math.floor((i.x + i.size / 2) / cellsize);
-        let cellY = Math.floor((i.y + i.size / 2) / cellsize);
-        /* grid check */
-        for (let ox=-1;ox <= 1; ox++){
-            for(let oy = -1; oy <= 1; oy++){
-                let key = `${cellX+ox},${cellY+oy}`
-                if(!grid.has(key)) continue;
-                for (let e of grid.get(key)){
-                    if(e === i) continue;
-                    let pairKey = i.ID < e.ID ? `${i.ID},${e.ID}` : `${e.ID},${i.ID}`;
-                    if(checked.has(pairKey))continue;
-                    checked.add(pairKey)
-
-                    let dx = (i.x + i.size/2) - (e.x + e.size/2)
-                    let dy = (i.y + i.size/2) - (e.y + e.size/2)
-                    let distanceSq = (dx * dx) + (dy * dy)
-                    
-
-                    if (distanceSq<nearestDistSq){
-                        nearest = e
-                        nearestDistSq = distanceSq
-                    }
-                } 
-            }
-        }
-        if (nearest){
-            i.partner = nearest
-            nearest.partner = i
-        }
-    }
-}
-
 
 
 

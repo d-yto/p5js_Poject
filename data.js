@@ -9,8 +9,7 @@ let data ={
 let stats ={
     adult:{
         color:[132, 102, 100],
-        velMin:0.9,
-        velMax:1.1,
+        get vel() {  return getRandomIntInclusive(0.9,1.1)  },
         type:"adult",
         get age() {  return getRandomIntInclusive(18,85)  },
         str:12,
@@ -25,8 +24,7 @@ let stats ={
     },
     child:{
         color:[100, 130, 132],
-        velMin:0.7,
-        velMax:0.9,
+        get vel() {  return getRandomIntInclusive(0.9,1.1)  },
         type:"kid",
         age:0,
         str:3,
@@ -52,31 +50,40 @@ let stats ={
 }
 
 
-class entity{
+class Entity{
     constructor(config){
         this.x = getRandomIntInclusive(0,mapWidth)
         this.y = getRandomIntInclusive(0,mapHeight)
-        this.vel = getRandomNumInclusive(config.velMin, config.velMax)
-        this.ID = crypto.randomUUID();
-        this.age = config.age
-        this.str = config.str
-        this.store = config.store
         this.size = config.size
-        this.type = config.type
+        this.color = [...config.color]
+        this.ID = crypto.randomUUID();
+        
+    }
+    render(){
+        fill(this.color)
+        circle(this.x, this.y, this.size)
+    }
+    update(){
+        this.render()
+    }
+}
+
+class Living extends Entity{
+    constructor(config){
+        super(config)
         this.hunger = config.hunger
         this.maxHunger = config.maxHunger
         this.hungerRate = config.hungerRate
-        this.noiseOffset = getRandomIntInclusive(1000, 9000);
-        this.direction ={x:random(), y:random()}
-        this.color = [...config.color]
-        this.collisionCooldown = 0
-        this.repRate = getRandomIntInclusive(config.repRateMin,config.repRateMax)
+        this.vel = config.vel
         this.targetVel = this.vel
+        this.direction ={x:random(), y:random()}
+        this.noiseOffset = getRandomIntInclusive(1000, 9000);
+        this.collisionCooldown = 0
         this.dead = false
-        this.partner = null
-        this.children = []
-        this.nearestFood
+        this.nearestFood = null
+        this.age = config.age
     }
+    
     update(foodGrid){
         createEntity(this)
         
@@ -84,26 +91,87 @@ class entity{
         
         touchingBoundary(this)//checks if the kid is touching boundary
         if (healthbar) hungerBar(this)
+        }
+}
+
+class Adult extends Living{
+    constructor(config){
+        super(config)
+        this.children = []
+        this.partner = null
+        this.store = config.store 
+        this.repRate = getRandomIntInclusive(config.repRateMin,config.repRateMax)
+    }
+    updateHunger(){
+        if (this.store>0){
+            if (this.hunger + this.store<this.maxHunger){
+
+                this.hunger += this.store
+                this.store = 0
+            } else if (this.hunger + this.store > this.maxHunger){
+                let d = this.maxHunger - this.hunger
+                this.hunger = this.maxHunger
+                this.store -= d 
+            }
+        }
+    }
+    canReproduce(){
+        return this.age >=18 && this.hunger >= 0.7*this.maxHunger && this.repRate<=0
+    }
+    update(foodGrid){
+        super.update(foodGrid)  // calls Living's update which handles movement/render
+        this.updateHunger()
+    }
+    
+}
+
+
+
+class Child extends Living{
+    constructor(config){
+        super(config)
+    }
+    growUp(){
+        let adult = new Adult(stats.adult)
+        adult.x = this.x
+        adult.y = this.y
+        adult.vel = this.vel + 0.2
+        adult.targetVel = adult.vel
+        adult.direction = this.direction
+        adult.noiseOffset = this.noiseOffset
+        adult.hunger = this.hunger
+        adult.age = 18
+        return adult
     }
 }
 
 
-class food{
+class Food extends Entity{
     constructor(config){
+        super(config)
         this.foodName = config.foodName
-        this.x = getRandomIntInclusive(0,mapWidth)
-        this.y = getRandomIntInclusive(0,mapHeight)
-        this.color = config.color
-        this.size = config.size
         this.hunger = config.hunger
+
         this.rotTime = config.rotTime
         this.rotRate = config.rotRate
-        this.ID = crypto.randomUUID();
     }
-    update(foodGrid){
-        fill (this.color)
+    render(){
+        fill(this.color)
         circle(this.x,this.y,this.size)
+    }
+
+    update(foodGrid){
+        this.render()
         
+    }
+}
+
+class Carrot extends Food {
+    constructor(config){
+        super(config)
+    }
+    update(){
+
     }
 }
 
