@@ -210,7 +210,7 @@ function blendSeekTargets(i,nx,ny,foodGrid){
             nx = (nx * 0.3) + (px / pLen * 0.7);
             ny = (ny * 0.3) + (py / pLen * 0.7);
         }
-    }else {
+    }else if(i.maxHunger*0.9>i.hunger){
         let target = nearestFood(i,foodGrid)
         if(target){
             let tx = target.x - i.x
@@ -288,7 +288,7 @@ function movement(obj,foodGrid){
     obj.x += obj.direction.x * obj.vel * worldSpeed
     obj.y += obj.direction.y * obj.vel * worldSpeed
     /*  */
-    let recoverySpeed = 0.003
+    let recoverySpeed = 0.004
     obj.vel += (obj.targetVel - obj.vel)*recoverySpeed * worldSpeed
 
 
@@ -525,13 +525,3 @@ function mouseReleased(){
 
 
 
-function giveChildrenFood(){
-    /* Function for parents to give their children food. */
-
-    /* In order to implement, I would need to:
-    - Rework the eatFood() function to store excess.
-    - Implement that if store is full, they will not seek food
-    - Implement eating store food
-    - Implement pathfinding to children to give them food
-    - Add data to know from the child which parents they have so we can remove the child from their children list when the child becomes 18. */
-}

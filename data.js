@@ -13,28 +13,25 @@ let stats ={
         type:"adult",
         get age() {  return getRandomIntInclusive(18,85)  },
         str:12,
-        store:40,
+        store:0,
+        maxStore:20,
         size:12,
-        hunger:60,
+        hunger:43,
         maxHunger:60,
-        hungerRate:0.6,
+        hungerRate:1,
         repRateMin:0,
         repRateMax:1000
 
     },
     child:{
         color:[100, 130, 132],
-        get vel() {  return getRandomIntInclusive(0.9,1.1)  },
+        get vel() {  return getRandomIntInclusive(0.7,0.9)  },
         type:"kid",
         age:0,
-        str:3,
-        store:20,
         size:8,
-        hunger:30,
-        maxHunger:30,
-        hungerRate:0.6,
-        repRateMin:Infinity,
-        repRateMax:Infinity,
+        hunger:17,
+        maxHunger:25,
+        hungerRate:1,
     
 
     },
@@ -100,33 +97,19 @@ class Adult extends Living{
         this.children = []
         this.partner = null
         this.store = config.store 
+        this.maxStore = config.maxStore
         this.repRate = getRandomIntInclusive(config.repRateMin,config.repRateMax)
     }
-    updateHunger(){
-        if (this.store>0){
-            if (this.hunger + this.store<this.maxHunger){
-                
-                this.hunger += this.store
-                this.store = 0
-            } else if (this.hunger + this.store > this.maxHunger){
-                let d = this.maxHunger - this.hunger
-                this.hunger = this.maxHunger
-                this.store -= d 
-            }
-        }
-    }
+
     canReproduce(){
         return this.age >=18 && this.hunger >= 0.7*this.maxHunger && this.repRate<=0
     }
     update(foodGrid){
         super.update(foodGrid)  // calls Living's update which handles movement/render
-        this.updateHunger()
         if (frameCount%(10/worldSpeed) === 0) this.repRate--;
     }
     
 }
-
-
 
 class Child extends Living{
     constructor(config){
@@ -145,7 +128,6 @@ class Child extends Living{
         return adult
     }
 }
-
 
 class Food extends Entity{
     constructor(config){

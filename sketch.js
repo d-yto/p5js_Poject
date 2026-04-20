@@ -39,9 +39,7 @@ function draw() {
     eat()
     const all = [...data.people, ...data.foods]
     
-    for (let i of all){
-        i.update(foodGrid);
-    }
+    for (let i of all) i.update(foodGrid)
 
     death()
     getFreaky()
