@@ -43,7 +43,7 @@ let stats ={
         color:[186, 98, 69],
         size:7,
         hunger:6,
-        rotTime:9,
+        rotTime:5,
         rotRate:0.9
     },
 
@@ -105,7 +105,7 @@ class Adult extends Living{
     updateHunger(){
         if (this.store>0){
             if (this.hunger + this.store<this.maxHunger){
-
+                
                 this.hunger += this.store
                 this.store = 0
             } else if (this.hunger + this.store > this.maxHunger){
@@ -121,6 +121,7 @@ class Adult extends Living{
     update(foodGrid){
         super.update(foodGrid)  // calls Living's update which handles movement/render
         this.updateHunger()
+        if (frameCount%(10/worldSpeed) === 0) this.repRate--;
     }
     
 }
@@ -170,13 +171,11 @@ class Carrot extends Food {
     constructor(config){
         super(config)
     }
-    update(){
-
-    }
+    
 }
 
-let winHeight = 500;
-let winWidth = 500;
+let winHeight = 600;
+let winWidth = 600;
 
 let mapWidth = 2000;
 let mapHeight = 2000;

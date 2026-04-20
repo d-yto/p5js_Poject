@@ -27,7 +27,7 @@ function draw() {
         updateHunger()
 
     }
-    if (frameCount%(20/worldSpeed) === 0){
+    if (frameCount%(30/worldSpeed) === 0){
         for(let i = 0; i<4; i++)data.foods.push(new Carrot(stats.carrot))
     }
     
@@ -42,10 +42,7 @@ function draw() {
     for (let i of all){
         i.update(foodGrid);
     }
-    if (frameCount%(10/worldSpeed) === 0){
-        for (i of all)if (i.repRate>0)i.repRate--;;
-        
-    }
+
     death()
     getFreaky()
     

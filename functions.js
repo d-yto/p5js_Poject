@@ -140,7 +140,7 @@ function getFreaky() {
     /* Checks for other applicable entities to reproduce with.
     Must be >= 18, relatively full on hunger, and have a repRate of 0 to be applicable */
     const cellsize = 50;
-    const applicable = data.people.filter(i => i.canReproduce)
+    const applicable = data.people.filter(i => i.canReproduce?.())
     const grid = createGrid(applicable, cellsize);
     const checked = new Set();
     for (let i of applicable) {
@@ -463,7 +463,7 @@ function eat(){
 
                 data.foods.splice(foodIndex, 1)
                 if(i.hunger>= i.maxHunger){
-                    i.store = Math.min(i.store+=nearest.hunger, i.store)
+                    i.store = Math.min(i.store + nearest.hunger, i.store)
                     return
                 }
                 i.hunger = Math.min(i.hunger+=nearest.hunger, i.maxHunger)
@@ -475,11 +475,7 @@ function eat(){
 function rotUpdate(){
     /* updates how rotted the food is */
     for (let i of data.foods){
-        i.rotTime -= i.rotRate
-        if(i.rotTime <= 0){
-            let foodIndex = data.foods.indexOf(i)
-            data.foods.splice(foodIndex,1)
-        }
+        i.rotTime -= i.rotRate        
     }
     data.foods = data.foods.filter(c => c.rotTime > 0)
 }
