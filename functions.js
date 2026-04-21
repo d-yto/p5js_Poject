@@ -118,23 +118,23 @@ function death(){
 function grow(){
     /* Function for when each year passes, to grow by 1 year.
     If i === 18 it transitions to being an adult */
-    for (let i of data.people){
-    i.age++;
-        if(i.age ===18 && i.type === "kid"){
-            let a = stats.adult
-            i.vel +=0.2
-            i.age = 18
-            i.str = a.str
-            i.store = a.store
-            i.size = a.size
-            i.type = a.type
+    let add = [];
+    let remove = [];
 
-            i.maxHunger = a.maxHunger
-            i.hungerRate = a.hungerRate
-            i.color = a.color
-            i.repRate = getRandomIntInclusive(a.repRateMin,a.repRateMax)
+    for (let i of data.people){
+        i.age++;
+        if(i.age ===18 && i.type === "kid"){
+            let adult = i.growUp()
+            add.push(adult)
+            remove.push(i)
         }
     }
+    for (let i of remove){
+        let index = data.people.indexOf(i)
+        if (index > -1) data.people.splice(index, 1)
+    } 
+    for (let i of add) data.people.push(i)
+    if (add.length>0)console.log(`${add.length} child/children grew up`)
 }
 function getFreaky() {
     /* Checks for other applicable entities to reproduce with.
@@ -522,6 +522,10 @@ function mouseReleased(){
     isdragging = false;
 }
 
+function placeCrop(crop){
+
+
+}
 
 
 

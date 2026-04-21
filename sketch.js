@@ -21,31 +21,36 @@ function draw() {
     push();
     translate(-camX, -camY)
 
+    if (keyIsDown(DOWN_ARROW) && TF === false){
+        placeCrop(farm.wheat)
+    }
+
     collisionCheck(data.people)
     if (frameCount % (120/worldSpeed) === 0){
         rotUpdate()
         updateHunger()
 
     }
-    if (frameCount%(30/worldSpeed) === 0){
+    if (frameCount%(20/worldSpeed) === 0){
         for(let i = 0; i<4; i++)data.foods.push(new Carrot(stats.carrot))
     }
     
-    if (frameCount %(1800/worldSpeed) === 0){
+    if (frameCount %(300/worldSpeed) === 0){
             grow()
     }
     
     const foodGrid = createGrid(data.foods, 50)
     eat()
-    const all = [...data.people, ...data.foods]
+    const all = [...data.people, ...data.foods, ...data.structures]
     
-    for (let i of all) i.update(foodGrid)
-
+    for (let p of all){
+        p.update(foodGrid)
+    }
     death()
     getFreaky()
     
     pop();
-    document.getElementById('deaths').textContent = `Deaths: ${deathToll}`;
+
     
     fill(130,120,62)
     rect(0,winHeight, 100, buttonheight,)
@@ -55,5 +60,7 @@ function draw() {
 
     fill (20)
     rect(200, winHeight,winWidth-200,buttonheight)
+    fill(255)
+    text(data.people.length,400,winHeight)
 }
 

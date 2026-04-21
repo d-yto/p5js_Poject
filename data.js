@@ -5,6 +5,7 @@ let data ={
     collisions:[],
     nearestFoods:[],
     infoBars:[],
+    structures:[],
 }
 let stats ={
     adult:{
@@ -12,9 +13,6 @@ let stats ={
         get vel() {  return getRandomIntInclusive(0.9,1.1)  },
         type:"adult",
         get age() {  return getRandomIntInclusive(18,85)  },
-        str:12,
-        store:0,
-        maxStore:20,
         size:12,
         hunger:43,
         maxHunger:60,
@@ -45,7 +43,15 @@ let stats ={
     },
 
 }
+let farm ={
+    wheat:{
+        color:[77, 18, 7],
+        type:`wheat`,
+        width:100,
+        height:100,
 
+    }
+}
 
 class Entity{
     constructor(config){
@@ -79,6 +85,7 @@ class Living extends Entity{
         this.dead = false
         this.nearestFood = null
         this.age = config.age
+        this.type = config.type
     }
     
     update(foodGrid){
@@ -156,6 +163,44 @@ class Carrot extends Food {
     
 }
 
+
+
+
+class structure{
+    constructor(config){
+        this.x = `who knows`
+        this.y = `who knows`
+        this.color = config.color
+        this.type = config.type
+        this.ID = crypto.randomUUID();
+    }
+}
+
+class RectangularStructure extends structure{
+    constructor(config){
+        super(config)
+        this.width = config.width
+        this.height = config.height
+    }
+    render(){
+        fill(this.color)
+        rect(this.x, this.y, this.width, this.height,)
+    }
+    update(){
+        this.render()
+    }
+}
+
+class farmland extends RectangularStructure{
+    constructor(config){
+        super(config)
+        this.crop = config.type
+        this.stage = 0
+        this.watered = false
+        this.workers = []
+    }
+}
+
 let winHeight = 600;
 let winWidth = 600;
 
@@ -173,3 +218,5 @@ let nearest = []
 let deathToll = 0
 let healthbar = true
 let worldSpeed = 1
+
+let TF = false
