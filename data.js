@@ -52,6 +52,9 @@ let farm ={
 
     }
 }
+let jobs ={
+    
+}
 
 class Entity{
     constructor(config){
@@ -168,8 +171,8 @@ class Carrot extends Food {
 
 class structure{
     constructor(config){
-        this.x = `who knows`
-        this.y = `who knows`
+        this.x = config.x
+        this.y = config.y
         this.color = config.color
         this.type = config.type
         this.ID = crypto.randomUUID();

@@ -522,10 +522,41 @@ function mouseReleased(){
     isdragging = false;
 }
 
-function placeCrop(crop){
+function keyPressed(){
+    if (key === 'q'){
+        crop = farm.wheat
+        x = mouseX - crop.width/2
+        y = mouseY - crop.height/2
+        placeCrop(farm.wheat,x,y)
+        
+    }
+}
 
+function placeCrop(crop, x,y){
+let config = crop
+config.x = round((x + camX)/config.width)*config.width
+config.y = round((y + camY)/config.height)*config.height
+let occupied = data.structures.some(c => c.x === config.x && c.y === config.y)
+if (occupied){
+    console.log(`oopsie`)
+    return
+}
+data.structures.push(new farmland(config))
 
 }
 
+function doubleClicked(){
+    console.log(`Double click`)
+    let x = mouseX + camX
+    let y = mouseY + camY
 
+    let occupied = data.structures.some(c => (abs(c.x + c.width) - x) < c.width/2 && (abs(c.y + c.height) - y)<c.height/2)
+    if (occupied){
+        openUi()
+    }
+}
+
+function openUi(){
+    console.log(`UI UI UI`)
+}
 

@@ -21,9 +21,7 @@ function draw() {
     push();
     translate(-camX, -camY)
 
-    if (keyIsDown(DOWN_ARROW) && TF === false){
-        placeCrop(farm.wheat)
-    }
+
 
     collisionCheck(data.people)
     if (frameCount % (120/worldSpeed) === 0){
@@ -41,7 +39,7 @@ function draw() {
     
     const foodGrid = createGrid(data.foods, 50)
     eat()
-    const all = [...data.people, ...data.foods, ...data.structures]
+    const all = [...data.structures, ...data.people, ...data.foods]
     
     for (let p of all){
         p.update(foodGrid)
