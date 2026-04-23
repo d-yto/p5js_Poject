@@ -15,7 +15,6 @@ function setup() {
 
 
 function draw() {
-    
     background(51);
 
     push();
@@ -48,7 +47,9 @@ function draw() {
     getFreaky()
     
     pop();
-
+    unemployed = data.people.filter(c => c.type === 'adult' && c.job === null)
+    
+    openUi()
     
     fill(130,120,62)
     rect(0,winHeight, 100, buttonheight,)

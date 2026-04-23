@@ -6,6 +6,7 @@ let data ={
     nearestFoods:[],
     infoBars:[],
     structures:[],
+    selectedstructure:null,
 }
 let stats ={
     adult:{
@@ -53,7 +54,13 @@ let farm ={
     }
 }
 let jobs ={
-    
+    farmer:{},
+    builder:{},
+    forager:{},
+    hunter:{},
+    lumberjack:{},
+
+
 }
 
 class Entity{
@@ -109,6 +116,7 @@ class Adult extends Living{
         this.store = config.store 
         this.maxStore = config.maxStore
         this.repRate = getRandomIntInclusive(config.repRateMin,config.repRateMax)
+        this.job = null
     }
 
     canReproduce(){
@@ -215,6 +223,11 @@ let camY = 0;
 let isdragging = false;
 let dragPosX, dragPosY;
 
+let marginWidthUI = winWidth/10
+let marginHeightUI = winHeight/10
+let uiWinWidth = (8/10)*winWidth
+let uiWinHeight = (8/10)*winHeight
+let entryHeight = 28
 
 let buttonheight = 60
 let nearest = []
@@ -223,3 +236,5 @@ let healthbar = true
 let worldSpeed = 1
 
 let TF = false
+let scrolloffset = 0
+let unemployed = data.people.filter(c => c.type === 'adult' && c.job === null)

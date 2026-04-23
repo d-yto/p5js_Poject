@@ -550,13 +550,47 @@ function doubleClicked(){
     let x = mouseX + camX
     let y = mouseY + camY
 
-    let occupied = data.structures.some(c => (abs(c.x + c.width) - x) < c.width/2 && (abs(c.y + c.height) - y)<c.height/2)
+    let occupied = data.structures.find(c =>
+        x > c.x && x < c.x + c.width &&
+        y > c.y && y < c.y + c.height)
     if (occupied){
-        openUi()
+        data.selected = occupied
+        console.log(`Open UI called`)
     }
 }
 
 function openUi(){
-    console.log(`UI UI UI`)
+    if(!data.selected) return
+    
+    fill(30)
+    rect(marginWidthUI , marginHeightUI , uiWinWidth , uiWinHeight)
+
+    fill(200)
+    textAlign(CENTER,BASELINE)
+    textSize(16)
+    textStyle(BOLD)
+    text(`Assign Workers`, winWidth/2, (winHeight/6))
+
+    
+
+    unemployed.forEach((e,i) => {
+        let entryY = (28*i) + (winHeight/6)+10 - scrolloffset
+        if (entryY> winHeight - (winHeight/6)-10|| entryY<marginHeightUI*2)return
+
+        
+        fill(50);
+        rect(115, entryY, winWidth - (marginWidthUI*2) -115, 25);
+        fill(200);
+        textAlign(LEFT,BOTTOM)
+        textSize(14)
+        text(`Age:${e.age}`, 122, entryY + 21)
+        }
+    );
+}
+
+function mouseWheel(e){
+    if(!data.selected) return
+    scrolloffset += e.delta;
+    scrolloffset = constrain(scrolloffset, 0, max(0,unemployed.length*entryHeight-uiWinHeight))
 }
 
