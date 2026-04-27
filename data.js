@@ -50,7 +50,7 @@ let farm ={
         type:`wheat`,
         width:100,
         height:100,
-
+        capacity:5
     }
 }
 let jobs ={
@@ -62,7 +62,14 @@ let jobs ={
 
 
 }
-
+let structureData ={
+    farm:{
+        type:"farm",
+        capacity:5,
+        workers:[],
+        workertype:jobs.farmer
+    }
+}
 class Entity{
     constructor(config){
         this.x = getRandomIntInclusive(0,mapWidth)
@@ -209,6 +216,7 @@ class farmland extends RectangularStructure{
         this.stage = 0
         this.watered = false
         this.workers = []
+        this.capacity = config.capacity
     }
 }
 
@@ -236,5 +244,7 @@ let healthbar = true
 let worldSpeed = 1
 
 let TF = false
-let scrolloffset = 0
+let scrollOffset = 0
+let scrollTarget = 0
 let unemployed = data.people.filter(c => c.type === 'adult' && c.job === null)
+let employeeSelected = null

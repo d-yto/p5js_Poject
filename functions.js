@@ -493,16 +493,45 @@ function updateHunger(){
 
 /* **INPUT / UI** */
 function mouseClicked(){
-    if(mouseX>0 && mouseX<100 && mouseY>winHeight && mouseY<winHeight+buttonheight){
-        healthbar = !healthbar
-        
+    if (mouseY > winHeight){
+        if (mouseX > 0 && mouseX < 100){ 
+            healthbar = !healthbar 
+        }
+        if (mouseX > 100 && mouseX < 200){
+            if (worldSpeed === 1) worldSpeed *= 5
+            else if (worldSpeed === 5) worldSpeed /= 5
+        }
+        return
     }
-    if(mouseX>100 && mouseX<200 && mouseY>winHeight && mouseY<winHeight+buttonheight){
-        
-        if (worldSpeed ===1)worldSpeed*=5
-        else if (worldSpeed ===5)worldSpeed/=5
-        
-    }
+    if (!data.selected) return
+
+    let assignable = [
+        ...data.selected.workers,
+        ...unemployed.filter(e => !data.selected.workers.includes(e))
+    ]
+    assignable.forEach((e, i) => {
+        let entryY = (28 * i) + (winHeight/6) + 10 - scrollOffset
+        let entryX = 115
+        let entryW = winWidth - (marginWidthUI * 2) - 115
+        let entryH = 25
+
+        // Check click is within this entry row and within the clipped UI area
+        if (mouseX > entryX && mouseX < entryX + entryW &&
+            mouseY > entryY && mouseY < entryY + entryH &&
+            mouseY > marginHeightUI * 2 && mouseY < winHeight - marginHeightUI){
+
+            let s = data.selected
+            let alreadyAssigned = s.workers.includes(e)
+
+            if (alreadyAssigned){
+                // Unassign — send back to unemployed pool
+                s.workers = s.workers.filter(w => w !== e)
+            } else if (s.workers.length < s.capacity){
+                // Assign if under cap
+                s.workers.push(e)
+            }
+        }
+    })
 }
 function mousePressed(){
     if (mouseY > winHeight) return;
@@ -530,6 +559,10 @@ function keyPressed(){
         placeCrop(farm.wheat,x,y)
         
     }
+    if (key === 27){
+            data.selected = null
+        
+    }
 }
 
 function placeCrop(crop, x,y){
@@ -549,7 +582,7 @@ function doubleClicked(){
     console.log(`Double click`)
     let x = mouseX + camX
     let y = mouseY + camY
-
+    
     let occupied = data.structures.find(c =>
         x > c.x && x < c.x + c.width &&
         y > c.y && y < c.y + c.height)
@@ -557,6 +590,7 @@ function doubleClicked(){
         data.selected = occupied
         console.log(`Open UI called`)
     }
+
 }
 
 function openUi(){
@@ -564,7 +598,8 @@ function openUi(){
     
     fill(30)
     rect(marginWidthUI , marginHeightUI , uiWinWidth , uiWinHeight)
-
+    let s = data.selected
+    let atCap = s.workers.length >= s.capacity
     fill(200)
     textAlign(CENTER,BASELINE)
     textSize(16)
@@ -572,25 +607,39 @@ function openUi(){
     text(`Assign Workers`, winWidth/2, (winHeight/6))
 
     
+    drawingContext.save()
+    drawingContext.beginPath()
+    drawingContext.rect(marginWidthUI, marginHeightUI * 2, uiWinWidth, uiWinHeight - (winHeight/6))
+    drawingContext.clip()
 
-    unemployed.forEach((e,i) => {
-        let entryY = (28*i) + (winHeight/6)+10 - scrolloffset
-        if (entryY> winHeight - (winHeight/6)-10|| entryY<marginHeightUI*2)return
 
+    if (!data.selected) return
+
+    let assignable = [
+        ...data.selected.workers,
+        ...unemployed.filter(e => !data.selected.workers.includes(e))
+    ]
+    assignable.forEach((e,i) => {
+        let entryY = (28*i) + (winHeight/6)+22 - scrollOffset
+        let isAssigned = s.workers.includes(e)
         
-        fill(50);
+
+        fill(isAssigned ? color(40, 80, 40) : atCap ? 35 : 50);
         rect(115, entryY, winWidth - (marginWidthUI*2) -115, 25);
-        fill(200);
+        fill(isAssigned ? color(100, 220, 100) : atCap ? 100 : 200)
         textAlign(LEFT,BOTTOM)
         textSize(14)
         text(`Age:${e.age}`, 122, entryY + 21)
-        }
-    );
-}
+    });
+drawingContext.restore()
+}        
+
+
 
 function mouseWheel(e){
     if(!data.selected) return
-    scrolloffset += e.delta;
-    scrolloffset = constrain(scrolloffset, 0, max(0,unemployed.length*entryHeight-uiWinHeight))
+    scrollTarget += e.delta;
+    scrollTarget = constrain(scrollTarget, 0, max(0,unemployed.length*entryHeight+uiWinHeight))
+    
 }
 
