@@ -50,7 +50,7 @@ function draw() {
     unemployed = data.people.filter(c => c.type === 'adult' && c.job === null)
     
     openUi()
-    scrollOffset = lerp(scrollOffset, scrollTarget, 0.15)
+    scrollOffset = lerp(scrollOffset, scrollTarget, 0.085)
     fill(130,120,62)
     rect(0,winHeight, 100, buttonheight,)
 

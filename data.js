@@ -44,17 +44,28 @@ let stats ={
     },
 
 }
-let farm ={
-    wheat:{
-        color:[77, 18, 7],
-        type:`wheat`,
+
+let structureConfigs ={
+    farm:{
+        wheat:{
+            color:[64, 33, 27],
+            type:`wheat`,
+            width:100,
+            height:100,
+            capacity:5,
+            for:`farmland`
+        }
+    },
+    pile:{
+        color:[79, 64, 40],
+        storageMax:100,
         width:100,
-        height:100,
-        capacity:5
+        Height:100,
+
     }
 }
 let jobs ={
-    farmer:{},
+    farmer:{type:`farmer`},
     builder:{},
     forager:{},
     hunter:{},
@@ -62,14 +73,7 @@ let jobs ={
 
 
 }
-let structureData ={
-    farm:{
-        type:"farm",
-        capacity:5,
-        workers:[],
-        workertype:jobs.farmer
-    }
-}
+
 class Entity{
     constructor(config){
         this.x = getRandomIntInclusive(0,mapWidth)
@@ -120,10 +124,10 @@ class Adult extends Living{
         super(config)
         this.children = []
         this.partner = null
-        this.store = config.store 
-        this.maxStore = config.maxStore
         this.repRate = getRandomIntInclusive(config.repRateMin,config.repRateMax)
+        this.assignedStructure = null
         this.job = null
+
     }
 
     canReproduce(){
@@ -217,6 +221,15 @@ class farmland extends RectangularStructure{
         this.watered = false
         this.workers = []
         this.capacity = config.capacity
+        this.job = "farmer"
+    }
+}
+
+class StockPile extends RectangularStructure{
+    constructor(config){
+        super(config)
+        this.currentStorage = 0;
+        this.storageMax = config.storageMax
     }
 }
 
@@ -233,7 +246,7 @@ let dragPosX, dragPosY;
 
 let marginWidthUI = winWidth/10
 let marginHeightUI = winHeight/10
-let uiWinWidth = (8/10)*winWidth
+let uiWinWidth = winWidth - marginWidthUI*2
 let uiWinHeight = (8/10)*winHeight
 let entryHeight = 28
 

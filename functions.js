@@ -510,9 +510,9 @@ function mouseClicked(){
         ...unemployed.filter(e => !data.selected.workers.includes(e))
     ]
     assignable.forEach((e, i) => {
-        let entryY = (28 * i) + (winHeight/6) + 10 - scrollOffset
+        let entryY = (28*i) + (winHeight/6)+22 - scrollOffset
         let entryX = 115
-        let entryW = winWidth - (marginWidthUI * 2) - 115
+        let entryW = uiWinWidth
         let entryH = 25
 
         // Check click is within this entry row and within the clipped UI area
@@ -529,18 +529,23 @@ function mouseClicked(){
             } else if (s.workers.length < s.capacity){
                 // Assign if under cap
                 s.workers.push(e)
+                e.assignedStructure = data.selected
+                e.job = e.assignedStructure.job
+                console.log(e.job)
             }
         }
     })
 }
 function mousePressed(){
     if (mouseY > winHeight) return;
+    if(data.selected) return;
     isdragging = true
     dragPosX = mouseX + camX 
     dragPosY = mouseY + camY 
 }
 function mouseDragged(){
     if (!isdragging) return;
+    if (data.selected) return
     camX = dragPosX - mouseX
     camY = dragPosY - mouseY
 
@@ -553,14 +558,15 @@ function mouseReleased(){
 
 function keyPressed(){
     if (key === 'q'){
-        crop = farm.wheat
+        crop = structureConfigs.farm.wheat
         x = mouseX - crop.width/2
         y = mouseY - crop.height/2
         placeCrop(farm.wheat,x,y)
         
     }
-    if (key === 27){
+    if (keyCode === 27){
             data.selected = null
+            scrollTarget = 0
         
     }
 }
@@ -594,11 +600,11 @@ function doubleClicked(){
 }
 
 function openUi(){
-    if(!data.selected) return
+    let s = data.selected
+    if(!s) return
     
     fill(30)
     rect(marginWidthUI , marginHeightUI , uiWinWidth , uiWinHeight)
-    let s = data.selected
     let atCap = s.workers.length >= s.capacity
     fill(200)
     textAlign(CENTER,BASELINE)
@@ -613,11 +619,11 @@ function openUi(){
     drawingContext.clip()
 
 
-    if (!data.selected) return
+    if (!s) return
 
     let assignable = [
-        ...data.selected.workers,
-        ...unemployed.filter(e => !data.selected.workers.includes(e))
+        ...s.workers,
+        ...unemployed.filter(e => !s.workers.includes(e))
     ]
     assignable.forEach((e,i) => {
         let entryY = (28*i) + (winHeight/6)+22 - scrollOffset
@@ -634,11 +640,9 @@ function openUi(){
 drawingContext.restore()
 }        
 
-
-
 function mouseWheel(e){
     if(!data.selected) return
-    scrollTarget += e.delta;
+    scrollTarget += e.delta/1.8;
     scrollTarget = constrain(scrollTarget, 0, max(0,unemployed.length*entryHeight+uiWinHeight))
     
 }
