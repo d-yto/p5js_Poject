@@ -462,10 +462,6 @@ function eat(){
             if (foodIndex !== -1){
 
                 data.foods.splice(foodIndex, 1)
-                if(i.hunger>= i.maxHunger){
-                    i.store = Math.min(i.store + nearest.hunger, i.store)
-                    return
-                }
                 i.hunger = Math.min(i.hunger+=nearest.hunger, i.maxHunger)
             
             }
@@ -503,38 +499,7 @@ function mouseClicked(){
         }
         return
     }
-    if (!data.selected) return
-
-    let assignable = [
-        ...data.selected.workers,
-        ...unemployed.filter(e => !data.selected.workers.includes(e))
-    ]
-    assignable.forEach((e, i) => {
-        let entryY = (28*i) + (winHeight/6)+22 - scrollOffset
-        let entryX = 115
-        let entryW = uiWinWidth
-        let entryH = 25
-
-        // Check click is within this entry row and within the clipped UI area
-        if (mouseX > entryX && mouseX < entryX + entryW &&
-            mouseY > entryY && mouseY < entryY + entryH &&
-            mouseY > marginHeightUI * 2 && mouseY < winHeight - marginHeightUI){
-
-            let s = data.selected
-            let alreadyAssigned = s.workers.includes(e)
-
-            if (alreadyAssigned){
-                // Unassign — send back to unemployed pool
-                s.workers = s.workers.filter(w => w !== e)
-            } else if (s.workers.length < s.capacity){
-                // Assign if under cap
-                s.workers.push(e)
-                e.assignedStructure = data.selected
-                e.job = e.assignedStructure.job
-                console.log(e.job)
-            }
-        }
-    })
+    if (data.activeUI) data.activeUI.handleclick(mouseX, mouseY)
 }
 function mousePressed(){
     if (mouseY > winHeight) return;
@@ -558,30 +523,42 @@ function mouseReleased(){
 
 function keyPressed(){
     if (key === 'q'){
-        crop = structureConfigs.farm.wheat
-        x = mouseX - crop.width/2
-        y = mouseY - crop.height/2
-        placeCrop(farm.wheat,x,y)
+        let crop = structureConfigs.farm.wheat
+        let x = mouseX - crop.width/2
+        let y = mouseY - crop.height/2
+        placeStructure(crop,x,y)
         
     }
+     if (key === 'e'){
+        let config = structureConfigs.pile
+        placeStructure(config, mouseX - config.width / 2, mouseY - config.height / 2)
+     }
     if (keyCode === 27){
             data.selected = null
+            data.activeUI = null
             scrollTarget = 0
         
     }
 }
 
-function placeCrop(crop, x,y){
-let config = crop
-config.x = round((x + camX)/config.width)*config.width
-config.y = round((y + camY)/config.height)*config.height
-let occupied = data.structures.some(c => c.x === config.x && c.y === config.y)
-if (occupied){
-    console.log(`oopsie`)
-    return
-}
-data.structures.push(new farmland(config))
+function placeStructure(config, x, y){
+    let cfg = { ...config }
+    cfg.x = round((x + camX) / cfg.width) * cfg.width
+    cfg.y = round((y + camY) / cfg.height) * cfg.height
 
+    let occupied = data.structures.some(c => c.x === cfg.x && c.y === cfg.y)
+    if (occupied){
+        console.log(`Tile occupied`)
+        return
+    }
+
+    let StructureClass = cfg.for
+    if (!StructureClass){
+        console.log(`No class found for: ${cfg.for}`)
+        return
+    }
+
+    data.structures.push(new StructureClass(cfg))
 }
 
 function doubleClicked(){
@@ -594,56 +571,15 @@ function doubleClicked(){
         y > c.y && y < c.y + c.height)
     if (occupied){
         data.selected = occupied
-        console.log(`Open UI called`)
+        let UIClass = occupied.uiClass
+        if (!UIClass) return
+        data.activeUI = new UIClass(occupied)
     }
 
 }
 
-function openUi(){
-    let s = data.selected
-    if(!s) return
-    
-    fill(30)
-    rect(marginWidthUI , marginHeightUI , uiWinWidth , uiWinHeight)
-    let atCap = s.workers.length >= s.capacity
-    fill(200)
-    textAlign(CENTER,BASELINE)
-    textSize(16)
-    textStyle(BOLD)
-    text(`Assign Workers`, winWidth/2, (winHeight/6))
-
-    
-    drawingContext.save()
-    drawingContext.beginPath()
-    drawingContext.rect(marginWidthUI, marginHeightUI * 2, uiWinWidth, uiWinHeight - (winHeight/6))
-    drawingContext.clip()
-
-
-    if (!s) return
-
-    let assignable = [
-        ...s.workers,
-        ...unemployed.filter(e => !s.workers.includes(e))
-    ]
-    assignable.forEach((e,i) => {
-        let entryY = (28*i) + (winHeight/6)+22 - scrollOffset
-        let isAssigned = s.workers.includes(e)
-        
-
-        fill(isAssigned ? color(40, 80, 40) : atCap ? 35 : 50);
-        rect(115, entryY, winWidth - (marginWidthUI*2) -115, 25);
-        fill(isAssigned ? color(100, 220, 100) : atCap ? 100 : 200)
-        textAlign(LEFT,BOTTOM)
-        textSize(14)
-        text(`Age:${e.age}`, 122, entryY + 21)
-    });
-drawingContext.restore()
-}        
-
 function mouseWheel(e){
-    if(!data.selected) return
-    scrollTarget += e.delta/1.8;
-    scrollTarget = constrain(scrollTarget, 0, max(0,unemployed.length*entryHeight+uiWinHeight))
+    if (data.activeUI) data.activeUI.updateScroll(e.delta)
     
 }
 

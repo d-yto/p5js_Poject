@@ -16,7 +16,7 @@ function setup() {
 
 function draw() {
     background(51);
-
+    unemployed = data.people.filter(c => c.type === 'adult' && c.job === null)
     push();
     translate(-camX, -camY)
 
@@ -47,10 +47,11 @@ function draw() {
     getFreaky()
     
     pop();
-    unemployed = data.people.filter(c => c.type === 'adult' && c.job === null)
     
-    openUi()
-    scrollOffset = lerp(scrollOffset, scrollTarget, 0.085)
+    
+    if (data.selected&& data.activeUI){
+        data.activeUI.render()
+    }
     fill(130,120,62)
     rect(0,winHeight, 100, buttonheight,)
 

@@ -1,4 +1,5 @@
 
+
 let data ={
     people:[],
     foods:[],
@@ -6,7 +7,8 @@ let data ={
     nearestFoods:[],
     infoBars:[],
     structures:[],
-    selectedstructure:null,
+    selected:null,
+    activeUI:null,
 }
 let stats ={
     adult:{
@@ -45,25 +47,6 @@ let stats ={
 
 }
 
-let structureConfigs ={
-    farm:{
-        wheat:{
-            color:[64, 33, 27],
-            type:`wheat`,
-            width:100,
-            height:100,
-            capacity:5,
-            for:`farmland`
-        }
-    },
-    pile:{
-        color:[79, 64, 40],
-        storageMax:100,
-        width:100,
-        Height:100,
-
-    }
-}
 let jobs ={
     farmer:{type:`farmer`},
     builder:{},
@@ -73,7 +56,7 @@ let jobs ={
 
 
 }
-
+//entity classes
 class Entity{
     constructor(config){
         this.x = getRandomIntInclusive(0,mapWidth)
@@ -187,7 +170,7 @@ class Carrot extends Food {
 
 
 
-
+//structure classes
 class structure{
     constructor(config){
         this.x = config.x
@@ -222,6 +205,7 @@ class farmland extends RectangularStructure{
         this.workers = []
         this.capacity = config.capacity
         this.job = "farmer"
+        this.uiClass = WorkerAssignUI
     }
 }
 
@@ -230,6 +214,141 @@ class StockPile extends RectangularStructure{
         super(config)
         this.currentStorage = 0;
         this.storageMax = config.storageMax
+    }
+}
+
+let structureConfigs ={
+    farm:{
+        wheat:{
+            color:[64, 33, 27],
+            type:`wheat`,
+            width:100,
+            height:100,
+            capacity:5,
+            for:farmland
+        }
+    },
+    pile:{
+        color:[79, 64, 40],
+        storageMax:100,
+        width:100,
+        height:100,
+        for:StockPile
+
+    }
+}
+
+
+//UI classes
+
+class UIWindow{
+    constructor(marginWidthUI, marginHeightUI, uiWinWidth, uiWinHeight){
+        this.x = marginWidthUI
+        this.y = marginHeightUI
+        this.width = uiWinWidth
+        this.height = uiWinHeight
+        this.scrollOffset = 0
+        this.scrollTarget = 0
+    }
+    beginClip(){
+        drawingContext.save()
+        drawingContext.beginPath()
+        drawingContext.rect(this.x,this.y*2, this.width, this.height - this.y*2)
+        drawingContext.clip()
+    }
+
+    endClip(){
+        drawingContext.restore()
+    }
+    drawBackground(){
+        fill(30)
+        
+        rect(this.x,this.y,this.width,this.height)
+    }
+    drawTitle(t){
+        fill(200)
+        textAlign(CENTER,TOP)
+        textSize(16)
+        textStyle(BOLD)
+        text(t,this.x + this.width/2, this.y + 30)
+    }
+    updateScroll(delta){
+        this.scrollTarget += delta/1.8
+        this.scrollTarget = constrain(this.scrollTarget, 0, max(0, this.maxScroll()))
+    }
+    maxScroll(){
+        return 0
+    }
+    update(){
+        this.scrollOffset = lerp(this.scrollOffset,this.scrollTarget,0.085)
+    }
+
+   
+}
+
+class WorkerAssignUI extends UIWindow{
+    constructor(structure){
+        super(marginWidthUI, marginHeightUI, uiWinWidth, uiWinHeight)
+        this.structure = structure
+    }
+    maxScroll(){
+        return max(0, unemployed.length * entryHeight - this.height) 
+    }
+    drawRow(e,i){
+        let s = this.structure
+        let atCap = s.workers.length >= s.capacity
+        let isAssigned = s.workers.includes(e)
+        let entryY = (28*i) + (winHeight/6) + 22 - this.scrollOffset
+        
+        noStroke()
+        fill(isAssigned ? color(40, 80, 40) : atCap ? 35 : 50);
+        rect(115, entryY, winWidth - (marginWidthUI*2) -115, 25);
+        
+        fill(isAssigned ? color(100, 220, 100) : atCap ? 100 : 200)
+        textAlign(LEFT,BOTTOM)
+        textSize(14)
+        text(`Age:${e.age}`, 122, entryY + 21)
+    }
+    getAssignable(){
+        let s = this.structure
+        return [
+            ...s.workers,
+            ...unemployed.filter(e => !s.workers.includes(e))
+        ]
+    }
+    render(){
+        this.drawBackground()
+        this.drawTitle(`Assign Workers ${data.selected.workers.length}/${data.selected.capacity}`)
+
+        this.beginClip()
+        this.getAssignable().forEach((e,i) => this.drawRow(e,i))
+        this.endClip()
+        
+        this.update()
+    }
+    handleclick(mx,my){
+        let s = this.structure
+        let atCap = s.workers.length >= s.capacity
+
+        this.getAssignable().forEach((e,i) => {
+            let entryY = (28*i) + winHeight/6 + 22 - this.scrollOffset
+            let inbounds = mx > 115 && mx < 115 + (this.width - (marginWidthUI * 2) - 115) &&
+                           my > entryY && my < entryY + 25 &&
+                           my > marginHeightUI * 2 && my < winHeight - marginHeightUI
+
+            if (!inbounds) return
+            
+            if (s.workers.includes(e)){
+                // if worker is already assigned-- unassingn them when clicked
+                s.workers = s.workers.filter(w => w !== e)
+                e.job = null
+                e.assignedStructure = null
+            }else if (!atCap){
+                s.workers.push(e)
+                e.assignedStructure = s
+                e.job = s.job
+            }
+        })
     }
 }
 
