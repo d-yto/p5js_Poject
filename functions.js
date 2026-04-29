@@ -471,16 +471,23 @@ function updateHunger() {
 
 /* **INPUT / UI** */
 function mouseClicked() {
-  if (mouseY > winHeight) {
-    if (mouseX > 0 && mouseX < 100) {
-      healthbar = !healthbar;
+    if (mouseY>winHeight&& mouseY<winHeight+buttonheight){
+
+        if (mouseY > winHeight) {
+            if (mouseX > 0 && mouseX < 100) {
+                healthbar = !healthbar;
+            }
+            if (mouseX > 100 && mouseX < 200) {
+                if (worldSpeed === 1) worldSpeed *= 5;
+                else if (worldSpeed === 5) worldSpeed /= 5;
+            }
+            if(mouseX>200&& mouseX<300){
+                data.activeUI = new BuilderUI();
+                data.selected = `builder`
+            }
+            return;
+        }
     }
-    if (mouseX > 100 && mouseX < 200) {
-      if (worldSpeed === 1) worldSpeed *= 5;
-      else if (worldSpeed === 5) worldSpeed /= 5;
-    }
-    return;
-  }
   if (data.activeUI) data.activeUI.handleclick(mouseX, mouseY);
 }
 function mousePressed() {

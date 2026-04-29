@@ -54,6 +54,14 @@ let jobs = {
   hunter: {},
   lumberjack: {},
 };
+let names = [
+    `Heubert`, `Hank`, `Shelly`, `Merideth`, `Benjamin`, `Theodore`, `Gerald`, `Elton`, `Archie`, `Gary`, `Agatha`, `Wilfred`, `Ingrid`, `Ernest`, `Edwin`,
+    `Fitzgerald`, `Olen`, `Fredrick`, `Wilbert`, `Darcel`, `Daisy`, `Petunia`, `Paulene`, `Franklynn`, `Trudie`, `Dennis`, `Bryan`, `Patrishia`,
+    `Eleanor`, `Clyde`, `Mabel`, `Harold`, `Beatrice`, `Clarence`, `Myrtle`, `Eugene`, `Florence`, `Alfred`, `Mildred`, `Cecil`, `Hattie`,
+    `Leonard`, `Blanche`, `Norman`, `Ethel`, `Stanley`, `Viola`, `Howard`, `Lillian`, `Ralph`, `Gertrude`, `Victor`, `Clara`, `Edgar`, `Nellie`,
+    `Wallace`, `Pearl`, `Milton`, `Ada`, `Lloyd`, `Irene`, `Russell`, `Olive`, `Harvey`, `Esther`, `Raymond`, `Hazel`, `Gilbert`, `Fannie`
+];
+
 //entity classes
 class Entity {
   constructor(config) {
@@ -87,6 +95,7 @@ class Living extends Entity {
     this.nearestFood = null;
     this.age = config.age;
     this.type = config.type;
+    this.name = names[floor(random(0,names.length))]
   }
 
   update(foodGrid) {
@@ -218,6 +227,7 @@ let structureConfigs = {
       width: 100,
       height: 100,
       capacity: 5,
+      structureName:`Wheat Farm`,
       for: farmland,
     },
   },
@@ -226,6 +236,7 @@ let structureConfigs = {
     storageMax: 100,
     width: 100,
     height: 100,
+    structureName:`StockPile`,
     for: StockPile,
   },
 };
@@ -290,7 +301,7 @@ class WorkerAssignUI extends UIWindow {
     this.structure = structure;
   }
   maxScroll() {
-    return max(0, unemployed.length * entryHeight - this.height);
+    return max(0, unemployed.length * entryHeight - 23/32*this.height);
   }
   drawRow(e, i) {
     let s = this.structure;
@@ -305,7 +316,9 @@ class WorkerAssignUI extends UIWindow {
     fill(isAssigned ? color(100, 220, 100) : atCap ? 100 : 200);
     textAlign(LEFT, BOTTOM);
     textSize(14);
-    text(`Age:${e.age}`, 122, entryY + 21);
+    text(`Name: ${e.name}`, 122, entryY + 21);
+    text(`Age: ${e.age}`, 255, entryY + 21);
+    text(`Type: Adult`, 345, entryY + 21);
   }
   getAssignable() {
     let s = this.structure;
@@ -353,6 +366,63 @@ class WorkerAssignUI extends UIWindow {
   }
 }
 
+class BuilderUI extends UIWindow{
+    constructor(){
+        super(marginWidthUI, marginHeightUI, uiWinWidth, uiWinHeight);
+        this.structures = buildableStructures
+        this.marginWidth = marginWidthUI
+        this.marginHeight = marginHeightUI
+        this.selected = null
+    }
+    maxScroll() {
+        return max(0, this.structures.length * entryHeight - 23/32*this.height);
+    }
+    drawRow(e,i){
+        let entryY = 28 * i + winHeight / 6 + 22 - this.scrollOffset;
+        let isSelected = this.selected === e
+
+        noStroke();
+        fill(isSelected ? color(40, 80, 40) : 50);
+        rect(115, entryY, winWidth - marginWidthUI * 2 - 115, 25);
+    
+        fill(isSelected ? color(120, 220, 120) : 200);
+        textAlign(LEFT, BOTTOM);
+        textSize(14);
+        text(`Structure: ${e.structureName}`, 122, entryY + 21);
+    }
+    render() {
+        this.drawBackground();
+        this.drawTitle(`Build`);
+        this.beginClip()
+        this.structures.forEach((config, i) => this.drawRow(config, i));
+        this.endClip()
+        this.update()
+      }
+      handleclick(mx, my) {
+        // handle placement if something is already selected
+        if (this.selected && my < winHeight) {
+            placeStructure(
+                this.selected,
+                mx - this.selected.width / 2,
+                my - this.selected.height / 2
+            )
+            return
+        }
+    
+        // otherwise check if a row was clicked
+        this.structures.forEach((config, i) => {
+            let entryY = 28 * i + winHeight / 6 + 22 - this.scrollOffset
+            let inbounds = mx > 115 &&
+                           mx < 115 + (this.width - marginWidthUI * 2 - 115) &&
+                           my > entryY && my < entryY + 25 &&
+                           my > marginHeightUI * 2 && my < winHeight - marginHeightUI
+    
+            if (!inbounds) return
+            this.selected = this.selected === config ? null : config
+        })
+    }
+}
+
 let winHeight = 600;
 let winWidth = 600;
 
@@ -383,3 +453,6 @@ let unemployed = data.people.filter(
   (c) => c.type === "adult" && c.job === null,
 );
 let employeeSelected = null;
+let buildableStructures = Object.values(structureConfigs).flatMap(entry => 
+    entry.for ? [entry] : Object.values(entry)
+)
