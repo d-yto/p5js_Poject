@@ -40,8 +40,29 @@ function draw() {
 
   pop();
 
-  if (data.selected && data.activeUI) {
+  if (data.activeUI) {
     data.activeUI.render();
+  }
+  if (data.builderUI && data.builderUI.placing && mouseY < winHeight){
+    let config = data.builderUI.selected
+
+    let snappedX = round((mouseX - config.width / 2 + camX) / config.width) * config.width;
+    let snappedY = round((mouseY - config.height / 2 + camY) / config.height) * config.height;
+    let occupied = data.structures.find((c) => 
+      snappedX === c.x && snappedY === c.y // Simple tile equality check
+    );
+
+    push(); // Protect existing drawing styles
+    if (occupied){
+      fill(225,0,0,60)
+    }else{
+      fill(...config.color, 90);
+
+    }
+    noStroke();
+    // Render at screen coordinates
+    rect(snappedX - camX, snappedY - camY, config.width, config.height);
+    pop();
   }
   fill(130, 120, 62);
   rect(0, winHeight, 100, buttonheight);

@@ -7,6 +7,7 @@ let data = {
   structures: [],
   selected: null,
   activeUI: null,
+  builderUI:null,
 };
 let stats = {
   adult: {
@@ -373,11 +374,12 @@ class BuilderUI extends UIWindow{
         this.marginWidth = marginWidthUI
         this.marginHeight = marginHeightUI
         this.selected = null
+        this.placing = false
     }
     maxScroll() {
         return max(0, this.structures.length * entryHeight - 23/32*this.height);
     }
-    drawRow(e,i){
+    drawRow(e,i) {
         let entryY = 28 * i + winHeight / 6 + 22 - this.scrollOffset;
         let isSelected = this.selected === e
 
@@ -398,30 +400,35 @@ class BuilderUI extends UIWindow{
         this.endClip()
         this.update()
       }
-      handleclick(mx, my) {
-        // handle placement if something is already selected
-        if (this.selected && my < winHeight) {
-            placeStructure(
-                this.selected,
-                mx - this.selected.width / 2,
-                my - this.selected.height / 2
-            )
-            return
+    handleclick(mx, my) {
+
+      if (this.placing && my < winHeight) {
+        placeStructure(
+          this.selected,
+          mx - this.selected.width / 2,
+          my - this.selected.height / 2
+        )
+        this.placing = false
+        this.selected = null
+        return
+      }
+
+      this.structures.forEach((config, i) => {
+        let entryY = 28 * i + winHeight / 6 + 22 - this.scrollOffset
+        let inbounds = mx > 115 &&
+          mx < 115 + (this.width - marginWidthUI * 2 - 115) &&
+          my > entryY && my < entryY + 25 &&
+          my > marginHeightUI * 2 && my < winHeight - marginHeightUI
+
+
+        if (inbounds) {
+          this.selected = config
+          this.placing = true
+          data.activeUI = null
         }
-    
-        // otherwise check if a row was clicked
-        this.structures.forEach((config, i) => {
-            let entryY = 28 * i + winHeight / 6 + 22 - this.scrollOffset
-            let inbounds = mx > 115 &&
-                           mx < 115 + (this.width - marginWidthUI * 2 - 115) &&
-                           my > entryY && my < entryY + 25 &&
-                           my > marginHeightUI * 2 && my < winHeight - marginHeightUI
-    
-            if (!inbounds) return
-            this.selected = this.selected === config ? null : config
-        })
+      })
     }
-}
+  }
 
 let winHeight = 600;
 let winWidth = 600;
@@ -456,3 +463,4 @@ let employeeSelected = null;
 let buildableStructures = Object.values(structureConfigs).flatMap(entry => 
     entry.for ? [entry] : Object.values(entry)
 )
+let totalDist = 0

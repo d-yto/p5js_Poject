@@ -471,6 +471,19 @@ function updateHunger() {
 
 /* **INPUT / UI** */
 function mouseClicked() {
+  if(totalDist>10){
+    totalDist = 0
+    return;
+  } 
+  if (data.activeUI){
+    data.activeUI.handleclick(mouseX, mouseY);
+    return;
+  } 
+  
+  if(data.builderUI && data.builderUI.placing){
+    data.builderUI.handleclick(mouseX,mouseY);
+    return;
+  }
     if (mouseY>winHeight&& mouseY<winHeight+buttonheight){
 
         if (mouseY > winHeight) {
@@ -482,27 +495,27 @@ function mouseClicked() {
                 else if (worldSpeed === 5) worldSpeed /= 5;
             }
             if(mouseX>200&& mouseX<300){
-                data.activeUI = new BuilderUI();
+                if (!data.builderUI) data.builderUI = new BuilderUI()
+                data.activeUI = data.builderUI;
                 data.selected = `builder`
             }
             return;
-        }
+          }
     }
-  if (data.activeUI) data.activeUI.handleclick(mouseX, mouseY);
 }
 function mousePressed() {
   if (mouseY > winHeight) return;
-  if (data.selected) return;
+  if (data.activeUI) return;
+  totalDist = 0
   isdragging = true;
   dragPosX = mouseX + camX;
   dragPosY = mouseY + camY;
 }
 function mouseDragged() {
   if (!isdragging) return;
-  if (data.selected) return;
   camX = dragPosX - mouseX;
   camY = dragPosY - mouseY;
-
+  totalDist = dist(mouseX,pmouseX,mouseY,pmouseY)
   camX = constrain(camX, 0, mapWidth - winWidth);
   camY = constrain(camY, 0, mapHeight - winHeight);
 }
@@ -528,6 +541,7 @@ function keyPressed() {
   if (keyCode === 27) {
     data.selected = null;
     data.activeUI = null;
+    if(data.builderUI)data.builderUI.placing = false
     scrollTarget = 0;
   }
 }
