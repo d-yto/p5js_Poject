@@ -33,8 +33,12 @@ function draw() {
   eat();
   const all = [...data.structures, ...data.people, ...data.foods];
 
-  for (let p of all) {
+  for (let p of data.people) {
     p.update(foodGrid);
+  }
+
+  for (let s of data.structures){
+    s.update()
   }
   death();
   getFreaky();

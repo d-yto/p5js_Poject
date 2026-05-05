@@ -139,44 +139,75 @@ class Living extends Entity {
     return { x:nx, y:ny, len };
   }
 
-  targetFood(){
-    let target = nearestFood(i, foodGrid);
+  targetFood(foodGrid){
+    let target = nearestFood(this, foodGrid);
     if (target) {
-      let tx = target.x - i.x;
-      let ty = target.y - i.y;
+      let tx = target.x - this.x;
+      let ty = target.y - this.y;
       let lenSq = tx * tx + ty * ty;
-      if (lenSq === 0)
-      let len = Math.sqrt(tLenSq)
+      let len = 0
+      if(lenSq === 0) len = sqrt(lenSq)
       return { x:tx, y:ty, len }
     }
   }
 
-  getSeekVector(){
-    return this.targetFood
-  }
-  targetBlend(){
-    let x = null
-    let y = null
-    let n = this.sampleNoise()
-    let b = this.boundaryRepulsion()
-    let f = this.targetFood()
-    if (!this.sampleNoise() || !this.boundaryRepulsion || !this.targetFood) return
+  targetBlend(foodGrid){
+    let n = this.sampleNoise();
+    if (!n) return null;
 
-    let x = (n.x / n.len) * 0.35 + (f.x / f.len) * 0.65 + b.x
-    let y = (n.y / n.len) * 0.35 + (f.y / f.len) * 0.65 + b.y
+    // Default intent is just organic noise
+    let ix = n.x / n.len;
+    let iy = n.y / n.len;
+
+    // Blend in food if hungry
+    if (this.hunger < this.maxHunger * 0.9) {
+      let f = this.targetFood(foodGrid);
+      if (f && f.len > 0) {
+        ix = ix * 0.35 + (f.x / f.len) * 0.65;
+        iy = iy * 0.35 + (f.y / f.len) * 0.65;
+      }
+    }
+
+    // Add wall repulsion to the final intent
+    let br = this.boundaryRepulsion();
+    return { x: ix + br.x, y: iy + br.y };
+  }
+
+  steer(target){
+    //updates direction vector
+    let strength = this.collisionCooldown > 0 ? 0.004 * worldSpeed : 0.04 * worldSpeed;
+
+    this.direction.x += (target.x - this.direction.x) * strength * worldSpeed
+    this.direction.y += (target.y - this.direction.y) * strength * worldSpeed
+
+    //Normalize vector
+    let dLen = sqrt(this.direction.x**2 + this.direction.y**2);
+    if (dLen > 0) {
+      this.direction.x /= dLen;
+      this.direction.y /= dLen;
+    }
+  }
+  
+  move(){
+    this.x += this.direction.x * this.vel * worldSpeed
+    this.y += this.direction.y * this.vel * worldSpeed
     
-    return { x, y }
+    
+    this.vel += (this.targetVel - this.vel) * 0.004 * worldSpeed
+    this.touchingBoundary()
   }
-
-
-
-
+  
+  
+  
+  
+  
+  
+  
   update(foodGrid) {
+    if (this.collisionCooldown > 0) this.collisionCooldown -= worldSpeed;
+    this.steer(this.targetBlend(foodGrid))
+    this.move()
     createEntity(this);
-
-    movement(this, foodGrid); //moves the kid
-
-    touchingBoundary(this); //checks if the kid is touching boundary
     if (healthbar) hungerBar(this);
   }
 }
