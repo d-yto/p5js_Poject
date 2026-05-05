@@ -1,4 +1,5 @@
 function setup() {
+  noStroke()
   let canvas = createCanvas(winWidth, winHeight + buttonheight);
   pixelDensity(1);
   for (let i = 0; i < 50; i++) {
@@ -7,7 +8,7 @@ function setup() {
   for (let i = 0; i < 50; i++) {
     data.people.push(new Adult(stats.adult));
   }
-}
+} 
 
 function draw() {
   background(51);
@@ -74,4 +75,6 @@ function draw() {
   rect(200, winHeight, winWidth - 200, buttonheight);
   fill(255);
   text(data.people.length, 400, winHeight);
+  fill(90,30,120)
+  rect(200, winHeight, winWidth - 500, buttonheight);
 }

@@ -99,6 +99,78 @@ class Living extends Entity {
     this.name = names[floor(random(0,names.length))]
   }
 
+  touchingBoundary(){
+    let s = this.size/2
+    [`x`,`y`].forEach((axis,i)=>{
+      let limit = [mapWidth,mapHeight][i]  
+        if (this[axis] < s || this[axis]>limit-s){
+          this.direction[axis] *=-1 //swaps its vel
+          this[axis] = Math.max(s,Math.min(this[axis],limit-s)) //clamps to nearest boundary so it doesnt get stuck in a wall
+        }
+    })
+  }
+
+  boundaryRepulsion(){
+    let boundMargin = 300
+    let repulse = 0.8
+    let brx = 0
+    let bry = 0
+    if(this.x < boundMargin) brx += repulse * (1 - this.x/boundMargin)
+    if(this.y < boundMargin) bry += repulse * (1 - this.y/boundMargin)
+    if(this.x > (mapWidth - boundMargin)) brx -= repulse*(1-(mapWidth - this.x)/boundMargin)
+    if(this.y > (mapHeight - boundMargin))  bry -= repulse*(1 - (mapHeight - this.y)/boundMargin)
+    return { x: brx, y: bry }
+  }
+
+  sampleNoise() {
+    /* samples perlin noise for organic movement*/
+    let noiseScale = 0.003;
+    let nt = 0.005 * frameCount;
+    let nx =
+      noise(noiseScale * this.x + this.noiseOffset, nt) -
+      noise(noiseScale * this.x + this.noiseOffset + 500, nt);
+    let ny =
+      noise(noiseScale * this.y + this.noiseOffset + 1000, nt) -
+      noise(noiseScale * this.y + this.noiseOffset + 1500, nt);
+    let lenSq = (nx * nx + ny * ny);
+    if (lenSq === 0) return;
+    let len = sqrt(lenSq)
+
+    return { x:nx, y:ny, len };
+  }
+
+  targetFood(){
+    let target = nearestFood(i, foodGrid);
+    if (target) {
+      let tx = target.x - i.x;
+      let ty = target.y - i.y;
+      let lenSq = tx * tx + ty * ty;
+      if (lenSq === 0)
+      let len = Math.sqrt(tLenSq)
+      return { x:tx, y:ty, len }
+    }
+  }
+
+  getSeekVector(){
+    return this.targetFood
+  }
+  targetBlend(){
+    let x = null
+    let y = null
+    let n = this.sampleNoise()
+    let b = this.boundaryRepulsion()
+    let f = this.targetFood()
+    if (!this.sampleNoise() || !this.boundaryRepulsion || !this.targetFood) return
+
+    let x = (n.x / n.len) * 0.35 + (f.x / f.len) * 0.65 + b.x
+    let y = (n.y / n.len) * 0.35 + (f.y / f.len) * 0.65 + b.y
+    
+    return { x, y }
+  }
+
+
+
+
   update(foodGrid) {
     createEntity(this);
 
@@ -117,6 +189,7 @@ class Adult extends Living {
     this.repRate = getRandomIntInclusive(config.repRateMin, config.repRateMax);
     this.assignedStructure = null;
     this.job = null;
+    this.jobState = null; // eg idle or walking or chopping a tree or watering plants so on and so forth
   }
 
   canReproduce() {
@@ -164,6 +237,22 @@ class Food extends Entity {
 
   update(foodGrid) {
     this.render();
+  }
+}
+
+class Crop extends Food {
+  constructor(config){
+    super(config)
+    this.cropType = this.cropType
+    this.stage = 0
+    this.health = 10
+    this.wateredPlot = false
+  }
+  update(){
+    if (frameCount % 400 === 0){
+      this.stage = min(this.stage + 1, 3)
+    }
+    this.render()
   }
 }
 
@@ -460,7 +549,6 @@ let unemployed = data.people.filter(
   (c) => c.type === "adult" && c.job === null,
 );
 let employeeSelected = null;
-let buildableStructures = Object.values(structureConfigs).flatMap(entry => 
-    entry.for ? [entry] : Object.values(entry)
+let buildableStructures = Object.values(structureConfigs).flatMap(entry => entry.for ? [entry] : Object.values(entry)
 )
 let totalDist = 0

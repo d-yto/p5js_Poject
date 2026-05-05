@@ -291,6 +291,17 @@ function movement(obj, foodGrid) {
   let recoverySpeed = 0.004;
   obj.vel += (obj.targetVel - obj.vel) * recoverySpeed * worldSpeed;
 }
+function jobBasedMovement(i,nx,ny){
+  let s = i.assignedStucture
+
+  let sdist = dist(i.x, i.y, s.x, s.y)
+  if (sdist>50){
+    if(i.jobstate !== `traversing`)i.jobState = `traversing`
+    jx = s.x - i.x
+    jy = s.y - i.y
+    return{jx,jy}
+  }
+}
 
 /* **COLLISION**  */
 function isColliding(object1, object2) {
@@ -471,36 +482,26 @@ function updateHunger() {
 
 /* **INPUT / UI** */
 function mouseClicked() {
-  if(totalDist>10){
-    totalDist = 0
-    return;
-  } 
-  if (data.activeUI){
-    data.activeUI.handleclick(mouseX, mouseY);
-    return;
-  } 
+  if(totalDist>10) { totalDist = 0; return } 
+  if (data.activeUI) { data.activeUI.handleclick(mouseX, mouseY); return } 
+  if(data.builderUI && data.builderUI.placing) { data.builderUI.handleclick(mouseX,mouseY); return }
   
-  if(data.builderUI && data.builderUI.placing){
-    data.builderUI.handleclick(mouseX,mouseY);
-    return;
-  }
-    if (mouseY>winHeight&& mouseY<winHeight+buttonheight){
-
-        if (mouseY > winHeight) {
-            if (mouseX > 0 && mouseX < 100) {
-                healthbar = !healthbar;
-            }
-            if (mouseX > 100 && mouseX < 200) {
-                if (worldSpeed === 1) worldSpeed *= 5;
-                else if (worldSpeed === 5) worldSpeed /= 5;
-            }
-            if(mouseX>200&& mouseX<300){
-                if (!data.builderUI) data.builderUI = new BuilderUI()
-                data.activeUI = data.builderUI;
-                data.selected = `builder`
-            }
-            return;
-          }
+  if (mouseY>winHeight&& mouseY<winHeight+buttonheight){
+    if (mouseY > winHeight) {
+        if (mouseX > 0 && mouseX < 100) {
+            healthbar = !healthbar;
+        }
+        if (mouseX > 100 && mouseX < 200) {
+            if (worldSpeed === 1) worldSpeed *= 5;
+            else if (worldSpeed === 5) worldSpeed /= 5;
+        }
+        if(mouseX>200&& mouseX<300){
+            if (!data.builderUI) data.builderUI = new BuilderUI()
+            data.activeUI = data.builderUI;
+            data.selected = `builder`
+        }
+        return;
+      }
     }
 }
 function mousePressed() {
@@ -515,7 +516,7 @@ function mouseDragged() {
   if (!isdragging) return;
   camX = dragPosX - mouseX;
   camY = dragPosY - mouseY;
-  totalDist = dist(mouseX,pmouseX,mouseY,pmouseY)
+  totalDist += dist(mouseX,pmouseX,mouseY,pmouseY)
   camX = constrain(camX, 0, mapWidth - winWidth);
   camY = constrain(camY, 0, mapHeight - winHeight);
 }
@@ -524,20 +525,6 @@ function mouseReleased() {
 }
 
 function keyPressed() {
-  if (key === "q") {
-    let crop = structureConfigs.farm.wheat;
-    let x = mouseX - crop.width / 2;
-    let y = mouseY - crop.height / 2;
-    placeStructure(crop, x, y);
-  }
-  if (key === "e") {
-    let config = structureConfigs.pile;
-    placeStructure(
-      config,
-      mouseX - config.width / 2,
-      mouseY - config.height / 2,
-    );
-  }
   if (keyCode === 27) {
     data.selected = null;
     data.activeUI = null;
