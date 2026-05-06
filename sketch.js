@@ -19,7 +19,6 @@ function draw() {
   collisionCheck(data.people);
   if (frameCount % (120 / worldSpeed) === 0) {
     rotUpdate();
-    updateHunger();
   }
   if (frameCount % (20 / worldSpeed) === 0) {
     for (let i = 0; i < 4; i++) data.foods.push(new Carrot(stats.carrot));
@@ -30,16 +29,19 @@ function draw() {
   }
 
   const foodGrid = createGrid(data.foods, 50);
-  eat();
-  const all = [...data.structures, ...data.people, ...data.foods];
-
-  for (let p of data.people) {
-    p.update(foodGrid);
-  }
-
+  
   for (let s of data.structures){
     s.update()
   }
+  
+  for (let f of data.foods){
+    f.update()
+  }
+  for (let p of data.people) {
+    p.update(foodGrid);
+  }
+  
+  eat();
   death();
   getFreaky();
 

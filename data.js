@@ -100,7 +100,7 @@ class Living extends Entity {
   }
 
   touchingBoundary(){
-    let s = this.size/2
+    let s = this.size/2;
     [`x`,`y`].forEach((axis,i)=>{
       let limit = [mapWidth,mapHeight][i]  
         if (this[axis] < s || this[axis]>limit-s){
@@ -145,30 +145,29 @@ class Living extends Entity {
       let tx = target.x - this.x;
       let ty = target.y - this.y;
       let lenSq = tx * tx + ty * ty;
-      let len = 0
-      if(lenSq === 0) len = sqrt(lenSq)
-      return { x:tx, y:ty, len }
+      
+      if (lenSq === 0) return { x: 0, y: 0, len: 0 };
+      let len = sqrt(lenSq);
+      return { x: tx / len, y: ty / len, len };
     }
+    return null
   }
 
   targetBlend(foodGrid){
     let n = this.sampleNoise();
     if (!n) return null;
 
-    // Default intent is just organic noise
     let ix = n.x / n.len;
     let iy = n.y / n.len;
 
-    // Blend in food if hungry
     if (this.hunger < this.maxHunger * 0.9) {
       let f = this.targetFood(foodGrid);
-      if (f && f.len > 0) {
-        ix = ix * 0.35 + (f.x / f.len) * 0.65;
-        iy = iy * 0.35 + (f.y / f.len) * 0.65;
+      if (f) {
+        ix = ix * 0.3 + f.x * 0.7;
+        iy = iy * 0.3 + f.y * 0.7;
       }
     }
 
-    // Add wall repulsion to the final intent
     let br = this.boundaryRepulsion();
     return { x: ix + br.x, y: iy + br.y };
   }
@@ -177,8 +176,8 @@ class Living extends Entity {
     //updates direction vector
     let strength = this.collisionCooldown > 0 ? 0.004 * worldSpeed : 0.04 * worldSpeed;
 
-    this.direction.x += (target.x - this.direction.x) * strength * worldSpeed
-    this.direction.y += (target.y - this.direction.y) * strength * worldSpeed
+    this.direction.x += (target.x - this.direction.x) * strength 
+    this.direction.y += (target.y - this.direction.y) * strength
 
     //Normalize vector
     let dLen = sqrt(this.direction.x**2 + this.direction.y**2);
@@ -197,18 +196,34 @@ class Living extends Entity {
     this.touchingBoundary()
   }
   
-  
-  
-  
-  
+  updateHunger(){
+    if(frameCount % (120/worldSpeed) === 0) this.hunger = max(this.hunger-= this.hungerRate, 0)
+  }
+      
+  shouldDie(){
+    if(this.hunger <= 0) return true;
+      if (this.age >= 90){
+        if (frameCount%(300/worldSpeed) === 0){
+          let odds = this.age * 4 - 350;
+          if(getRandomIntInclusive(1, 100) < odds){
+            console.log(`${this.name} died of old age at age ${this.age}`)
+            return true;
+          } 
+        }
+      }
+    return false;
+  }
   
   
   update(foodGrid) {
+    this.updateHunger()
+    let target = this.targetBlend(foodGrid)
     if (this.collisionCooldown > 0) this.collisionCooldown -= worldSpeed;
-    this.steer(this.targetBlend(foodGrid))
+    if (target) this.steer(target)
     this.move()
     createEntity(this);
     if (healthbar) hungerBar(this);
+
   }
 }
 
@@ -231,6 +246,38 @@ class Adult extends Living {
   update(foodGrid) {
     super.update(foodGrid); // calls Living's update which handles movement/render
     if (frameCount % (10 / worldSpeed) === 0) this.repRate--;
+  }
+  targetBlend(foodGrid){
+    let n = this.sampleNoise()
+    if (!n) return null
+
+    let ix = n.x
+    let iy = n.y
+
+    if (this.partner) {
+        // only seek partner if not too hungry
+        let px = this.partner.x - this.x
+        let py = this.partner.y - this.y
+        let pLenSq = px * px + py * py
+
+        if (pLenSq <= this.size * this.size && this.ID < this.partner.ID) {
+            birth(this, this.partner)
+            return null
+        }
+
+        if (pLenSq > 0) {
+            let pLen = sqrt(pLenSq)
+            ix = ix * 0.3 + (px / pLen) * 0.7
+            iy = iy * 0.3 + (py / pLen) * 0.7
+        }
+
+        let br = this.boundaryRepulsion()
+        return { x: ix + br.x, y: iy + br.y }
+      
+    }
+
+    // no partner, or too hungry — fall through to food seeking
+    return super.targetBlend(foodGrid)
   }
 }
 

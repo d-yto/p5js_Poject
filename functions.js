@@ -77,16 +77,16 @@ function birth(i, e) {
   child.hunger = child.maxHunger * getRandomNumInclusive(0.5, 0.7);
   data.people.push(child);
   if (roll === 1) {
-    /* inherit from i */
-    child.vel = i.vel - getRandomNumInclusive(0.1, 0.33);
+  /* inherit from i */
+  child.vel = Math.max(0.1, i.vel - getRandomNumInclusive(0.1, 0.33));
   }
   if (roll === 2) {
     /* inherit from e */
-    child.vel = e.vel - getRandomNumInclusive(0.1, 0.33);
+    child.vel = Math.max(0.1, e.vel - getRandomNumInclusive(0.1, 0.33));
   }
   if (roll === 3) {
     /* avg both parents, include minor mutations */
-    child.vel = (i.vel + e.vel) / 2 - getRandomNumInclusive(0.1, 0.33);
+    child.vel = Math.max(0.1, (i.vel + e.vel) / 2 - getRandomNumInclusive(0.1, 0.33));
   }
 
   i.hunger -= 25;
@@ -100,16 +100,9 @@ function birth(i, e) {
   console.log(`BIRTH`);
 }
 function death() {
-  /* removes people if they are appliciable to die */
+  /* removes people if they should die */
   let before = data.people.length;
-  data.people = data.people.filter((p) => p.hunger > 0);
-  let old = data.people.filter((p) => p.age > 90);
-  for (let i of old) {
-    let odds = i.age * 4 - 350;
-    let roll = getRandomIntInclusive(1, 100);
-    i.dead = Boolean(roll < odds);
-  }
-  data.people = data.people.filter((p) => p.dead === false);
+  data.people = data.people.filter(p => !p.shouldDie());
   deathToll += before - data.people.length;
 }
 function grow() {
@@ -177,129 +170,15 @@ function getFreaky() {
 }
 
 /* **MOVEMENT** */
-function sampleNoise(i) {
-  /* samples perlin noise to make entity movement look more organic */
-  let noiseScale = 0.003;
-  let nt = 0.005 * frameCount;
-  let nx =
-    noise(noiseScale * i.x + i.noiseOffset, nt) -
-    noise(noiseScale * i.x + i.noiseOffset + 500, nt);
-  let ny =
-    noise(noiseScale * i.y + i.noiseOffset + 1000, nt) -
-    noise(noiseScale * i.y + i.noiseOffset + 1500, nt);
-  let len = sqrt(nx * nx + ny * ny);
-  if (len === 0) return;
-
-  return { nx, ny, len };
-}
-function blendSeekTargets(i, nx, ny, foodGrid) {
-  /* blends the perlin noise with seeking a lover and seeking food. If there is a lover, the individual will not seek food. */
-  let p = i.partner;
-  if (p) {
-    let px = p.x - i.x;
-    let py = p.y - i.y;
-    let pLenSq = px * px + py * py;
-    if (pLenSq <= i.size * i.size && i.ID < p.ID) {
-      birth(i, p);
-      return null;
-    }
-    if (pLenSq > 0) {
-      let pLen = sqrt(pLenSq);
-      nx = nx * 0.3 + (px / pLen) * 0.7;
-      ny = ny * 0.3 + (py / pLen) * 0.7;
-    }
-  } else if (i.maxHunger * 0.9 > i.hunger) {
-    let target = nearestFood(i, foodGrid);
-    if (target) {
-      let tx = target.x - i.x;
-      let ty = target.y - i.y;
-      let tLenSq = tx * tx + ty * ty;
-      if (tLenSq > 0) {
-        let tLen = Math.sqrt(tLenSq);
-        /* 35% noise wandering 65% pull toward food. Adjusting these two values changes how directy entity's will make their way to the food.*/
-        nx = nx * 0.35 + (tx / tLen) * 0.65;
-        ny = ny * 0.35 + (ty / tLen) * 0.65;
-      }
-    }
-  }
-  return { nx, ny };
-}
-function boundaryRepulsion(i, nx, ny) {
-  /* Pushes entities away from the edges of the canvas. */
-  /* boundMargin is how far away the repulsion from the edge starts. */
-  /* repulse is the strength at which the wall pushes back.  */
-  /* the closer the entity is to the wall (the further they are in the margin), the stronger the push.  */
-  let boundMargin = 120;
-  let repulse = 0.8;
-  if (i.x < boundMargin) {
-    nx += repulse * (1 - i.x / boundMargin);
-  }
-  if (i.x > mapWidth - boundMargin) {
-    nx -= repulse * (1 - (mapWidth - i.x) / boundMargin);
-  }
-  if (i.y < boundMargin) {
-    ny += repulse * (1 - i.y / boundMargin);
-  }
-  if (i.y > mapHeight - boundMargin) {
-    ny -= repulse * (1 - (mapHeight - i.y) / boundMargin);
-  }
-  return { nx, ny };
-}
-function applySteer(i, nx, ny, len) {
-  /* steerstrength dictates how quickly entitys turn towards the target direction. */
-  /* after a collision, steerforce is reduced by a factor of 10 to allow for the collision to play out before noise starts pulling the entity back onto course.
-    After 1/3 seconds, normal steering resumes. */
-  let steerStrength =
-    i.collisionCooldown > 0 ? 0.004 * worldSpeed : 0.04 * worldSpeed;
-  if (i.collisionCooldown > 0) i.collisionCooldown -= worldSpeed;
-
-  /* gradually nudge entity dirction towards the comined noise, food, and boundary force. */
-  /* linear interpolation rather than snappping immediately to the new direction.
-    It being a lerp means it moves a small fraction of the way there each time, giving a more smooth transition. */
-  i.direction.x += (nx / len - i.direction.x) * steerStrength;
-  i.direction.y += (ny / len - i.direction.y) * steerStrength;
-
-  /* finally normalizes direction back into a unit vector with a length of exactly 1. 
-    Steering can stretch or shrink this, so to be safe we correct that here, letting speed stay consistent. 
-    Vel is what controls speed, direction should just point. if directions length is greater than or less than 1 it will affect speed.*/
-  let dLen = sqrt(
-    i.direction.x * i.direction.x + i.direction.y * i.direction.y,
-  );
-  if (dLen === 0) return;
-  i.direction.x /= dLen;
-  i.direction.y /= dLen;
-}
-function mapNoise(i, foodGrid) {
-  /* calls all the functions to move everyone around */
-  let noise = sampleNoise(i);
-  if (!noise) return;
-
-  let blended = blendSeekTargets(i, noise.nx, noise.ny, foodGrid);
-  if (!blended) return;
-
-  let repelled = boundaryRepulsion(i, blended.nx, blended.ny);
-
-  applySteer(i, repelled.nx, repelled.ny, noise.len);
-}
-function movement(obj, foodGrid) {
-  /* applies direction and velocity (which is technically magnitude)
-    nudges entities velocity closer to their normal velocity after a collision */
-  mapNoise(obj, foodGrid);
-  obj.x += obj.direction.x * obj.vel * worldSpeed;
-  obj.y += obj.direction.y * obj.vel * worldSpeed;
-  /*  */
-  let recoverySpeed = 0.004;
-  obj.vel += (obj.targetVel - obj.vel) * recoverySpeed * worldSpeed;
-}
 function jobBasedMovement(i,nx,ny){
   let s = i.assignedStucture
 
   let sdist = dist(i.x, i.y, s.x, s.y)
   if (sdist>50){
     if(i.jobstate !== `traversing`)i.jobState = `traversing`
-    jx = s.x - i.x
-    jy = s.y - i.y
-    return{jx,jy}
+    let jx = s.x - i.x
+    let jy = s.y - i.y
+    return{ jx, jy }
   }
 }
 
