@@ -2,10 +2,10 @@ function setup() {
   noStroke()
   let canvas = createCanvas(winWidth, winHeight + buttonheight);
   pixelDensity(1);
-  for (let i = 0; i < 50; i++) {
+  for (let i = 0; i < 20; i++) {
     data.people.push(new Child(stats.child));
   }
-  for (let i = 0; i < 50; i++) {
+  for (let i = 0; i < 30; i++) {
     data.people.push(new Adult(stats.adult));
   }
 } 
@@ -24,7 +24,7 @@ function draw() {
     for (let i = 0; i < 4; i++) data.foods.push(new Carrot(stats.carrot));
   }
 
-  if (frameCount % (300 / worldSpeed) === 0) {
+  if (frameCount % (800 / worldSpeed) === 0) {
     grow();
   }
 

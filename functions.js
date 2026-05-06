@@ -47,22 +47,7 @@ function hungerBar(i) {
   }
   rect(bx, by, barWidth * decFill, barHeight);
 }
-function createEntity(i) {
-  fill(i.color);
-  circle(i.x, i.y, i.size);
 
-  let cx = i.x;
-  let cy = i.y;
-  stroke(255, 255, 255, 150);
-  strokeWeight(1);
-  line(
-    cx,
-    cy,
-    cx + i.direction.x * (i.vel * 14),
-    cy + i.direction.y * (i.vel * 14),
-  );
-  noStroke();
-}
 
 /* **ENTITY LIFECYCLE** */
 function birth(i, e) {
@@ -169,18 +154,7 @@ function getFreaky() {
   }
 }
 
-/* **MOVEMENT** */
-function jobBasedMovement(i,nx,ny){
-  let s = i.assignedStucture
 
-  let sdist = dist(i.x, i.y, s.x, s.y)
-  if (sdist>50){
-    if(i.jobstate !== `traversing`)i.jobState = `traversing`
-    let jx = s.x - i.x
-    let jy = s.y - i.y
-    return{ jx, jy }
-  }
-}
 
 /* **COLLISION**  */
 function isColliding(object1, object2) {
@@ -350,13 +324,6 @@ function rotUpdate() {
     i.rotTime -= i.rotRate;
   }
   data.foods = data.foods.filter((c) => c.rotTime > 0);
-}
-function updateHunger() {
-  /* Updates hunger of entity based off their hungerRate */
-  for (let i of data.people) {
-    i.hunger -= i.hungerRate;
-    if (i.hunger > i.maxHunger) i.hunger = i.maxHunger;
-  }
 }
 
 /* **INPUT / UI** */

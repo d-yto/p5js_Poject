@@ -24,7 +24,7 @@ let stats = {
     maxHunger: 60,
     hungerRate: 1,
     repRateMin: 0,
-    repRateMax: 1000,
+    repRateMax: 500,
   },
   child: {
     color: [100, 130, 132],
@@ -110,16 +110,27 @@ class Living extends Entity {
     })
   }
 
-  boundaryRepulsion(){
-    let boundMargin = 300
-    let repulse = 0.8
-    let brx = 0
-    let bry = 0
-    if(this.x < boundMargin) brx += repulse * (1 - this.x/boundMargin)
-    if(this.y < boundMargin) bry += repulse * (1 - this.y/boundMargin)
-    if(this.x > (mapWidth - boundMargin)) brx -= repulse*(1-(mapWidth - this.x)/boundMargin)
-    if(this.y > (mapHeight - boundMargin))  bry -= repulse*(1 - (mapHeight - this.y)/boundMargin)
-    return { x: brx, y: bry }
+  boundaryRepulsion() {
+    let boundMargin = 300;
+    let repulse = 0.8;
+    let brx = 0;
+    let bry = 0;
+
+    // X Axis Forces
+    if (this.x < boundMargin) {
+      brx += repulse * (1 - Math.max(0, this.x) / boundMargin);
+    } else if (this.x > mapWidth - boundMargin) {
+      brx -= repulse * (1 - Math.max(0, mapWidth - this.x) / boundMargin);
+    }
+
+    // Y Axis Forces
+    if (this.y < boundMargin) {
+      bry += repulse * (1 - Math.max(0, this.y) / boundMargin);
+    } else if (this.y > mapHeight - boundMargin) {
+      bry -= repulse * (1 - Math.max(0, mapHeight - this.y) / boundMargin);
+    }
+
+  return { x: brx, y: bry };
   }
 
   sampleNoise() {
@@ -148,7 +159,7 @@ class Living extends Entity {
       
       if (lenSq === 0) return { x: 0, y: 0, len: 0 };
       let len = sqrt(lenSq);
-      return { x: tx / len, y: ty / len, len };
+      return { x: tx / len, y: ty / len, len: len };
     }
     return null
   }
@@ -160,11 +171,20 @@ class Living extends Entity {
     let ix = n.x / n.len;
     let iy = n.y / n.len;
 
+    let waddleStrength = 0.4 + sin(frameCount * 0.15) * 0.2;
+    ix *= waddleStrength;
+    iy *= waddleStrength;
+
     if (this.hunger < this.maxHunger * 0.9) {
       let f = this.targetFood(foodGrid);
-      if (f) {
-        ix = ix * 0.3 + f.x * 0.7;
-        iy = iy * 0.3 + f.y * 0.7;
+      if (f){
+        let slowingRadius = 80
+        let speed = (f.len < slowingRadius) ? this.vel* (f.len/slowingRadius):this.vel
+        let dx = f.x * speed
+        let dy = f.y * speed
+
+        ix = ix*0.15 + dx*0.85
+        iy = iy*0.15 + dy*0.85
       }
     }
 
@@ -174,7 +194,8 @@ class Living extends Entity {
 
   steer(target){
     //updates direction vector
-    let strength = this.collisionCooldown > 0 ? 0.004 * worldSpeed : 0.04 * worldSpeed;
+    let strength = this.hunger < this.maxHunger * 0.9 ? 0.12 * worldSpeed : 0.05 * worldSpeed;
+    if (this.collisionCooldown > 0) strength = 0.01 * worldSpeed;
 
     this.direction.x += (target.x - this.direction.x) * strength 
     this.direction.y += (target.y - this.direction.y) * strength
@@ -213,6 +234,23 @@ class Living extends Entity {
       }
     return false;
   }
+  render(){
+    fill(this.color);
+    
+    circle(this.x, this.y, this.size);
+
+    let cx = this.x;
+    let cy = this.y;
+    stroke(255, 255, 255, 150);
+    strokeWeight(1);
+    line(
+      cx,
+      cy,
+      cx + this.direction.x * (this.vel * 14),
+      cy + this.direction.y * (this.vel * 14),
+    );
+    noStroke();
+  }
   
   
   update(foodGrid) {
@@ -221,7 +259,7 @@ class Living extends Entity {
     if (this.collisionCooldown > 0) this.collisionCooldown -= worldSpeed;
     if (target) this.steer(target)
     this.move()
-    createEntity(this);
+    this.render()
     if (healthbar) hungerBar(this);
 
   }
@@ -237,7 +275,26 @@ class Adult extends Living {
     this.job = null;
     this.jobState = null; // eg idle or walking or chopping a tree or watering plants so on and so forth
   }
+  jobAction(){
+    let s = this.assignedStucture
+    if (!s) return
+    let sdist = dist(i.x, i.y, s.x, s.y)
+    
+    if (sdist>50){
+      if(i.jobstate !== `traversing`)i.jobState = `traversing`
+      let jx = s.x - i.x
+      let jy = s.y - i.y
+      return{ x:jx, y:jy }
+    
+    }
+    if (dist<=50){
+      if (i.jobstate !== `working`){
+        this.jobstate = `working`
+      }
 
+    }
+  }
+  
   canReproduce() {
     return (
       this.age >= 18 && this.hunger >= 0.7 * this.maxHunger && this.repRate <= 0
@@ -254,7 +311,7 @@ class Adult extends Living {
     let ix = n.x
     let iy = n.y
 
-    if (this.partner) {
+    if (this.partner && this.hunger >= this.maxHunger * 0.7) {
         // only seek partner if not too hungry
         let px = this.partner.x - this.x
         let py = this.partner.y - this.y
@@ -275,7 +332,10 @@ class Adult extends Living {
         return { x: ix + br.x, y: iy + br.y }
       
     }
-
+    if (this.partner) {
+      if (this.partner.partner === this) this.partner.partner = null;
+      this.partner = null; 
+    }
     // no partner, or too hungry — fall through to food seeking
     return super.targetBlend(foodGrid)
   }
@@ -595,7 +655,7 @@ class BuilderUI extends UIWindow{
         }
       })
     }
-  }
+}
 
 let winHeight = 600;
 let winWidth = 600;
