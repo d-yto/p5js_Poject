@@ -62,7 +62,32 @@ let names = [
     `Leonard`, `Blanche`, `Norman`, `Ethel`, `Stanley`, `Viola`, `Howard`, `Lillian`, `Ralph`, `Gertrude`, `Victor`, `Clara`, `Edgar`, `Nellie`,
     `Wallace`, `Pearl`, `Milton`, `Ada`, `Lloyd`, `Irene`, `Russell`, `Olive`, `Harvey`, `Esther`, `Raymond`, `Hazel`, `Gilbert`, `Fannie`
 ];
+let jobBehaviours = {
+  farmer:{
+    requirement: (item) => item instanceof FarmCrop && (item.watered === false || item.growthStage >= item.harvestStage),
+    findTarget: (entity) => findNearestJobInteract(entity),
+    onWorkComplete: (entity, target) => {
+      if(target.growthStage >= target.harvestStage){
+        entity.storage.push(target.resource* target.harvestAmount) 
+        target.growthStage = 0;
+      }else{
+        target.growthStage++
+      }
+      target.watered = true
+    }
+  },
+  lumberjack: {
+    requirement: (item) => (item.type === 'tree' || item.growthStage >= harvestStage),
+    onWorkComplete: (entity, target) => {
+      target.hp--
+      if(target.growthStage >= target.harvestStage){
+        entity.storage.push(target.resource* target.harvestAmount) 
+        target.toRemove = true;
 
+      }
+    }
+  }
+}
 //entity classes
 class Entity {
   constructor(config) {
@@ -273,28 +298,35 @@ class Adult extends Living {
     this.repRate = getRandomIntInclusive(config.repRateMin, config.repRateMax);
     this.assignedStructure = null;
     this.job = null;
-    this.jobState = null; // eg idle or walking or chopping a tree or watering plants so on and so forth
+    this.jobState = 'idle'; // eg idle or walking or chopping a tree or watering plants so on and so forth
+    this.jobTarget = null;
+    this.storage = [];
   }
   jobAction(){
-    let s = this.assignedStucture
-    if (!s) return
-    let sdist = dist(i.x, i.y, s.x, s.y)
-    
-    if (sdist>50){
-      if(i.jobstate !== `traversing`)i.jobState = `traversing`
-      let jx = s.x - i.x
-      let jy = s.y - i.y
-      return{ x:jx, y:jy }
-    
-    }
-    if (dist<=50){
-      if (i.jobstate !== `working`){
-        this.jobstate = `working`
-      }
+    if (!this.job) return null 
 
+    if (!this.jobTarget) findNearestJobInteract(this);
+    let nearest = this.jobTarget;
+    if (!this.jobTarget) return null;
+
+
+    if (nearest.dist>50){
+      this.jobstate = 'traversing'
+      
+      return
     }
+    
+    if (this.jobState !== `working`){
+      this.jobState = `working`
+    }
+    let behaviour = jobBehaviours[this.job];
+    if (frameCount % (60 / worldSpeed) === 0) {
+      behaviour.onWorkComplete(this, nearest);
+      this.jobTarget = null; // find next target next frame
+    }
+    return null; // don't steer while working
   }
-  
+ 
   canReproduce() {
     return (
       this.age >= 18 && this.hunger >= 0.7 * this.maxHunger && this.repRate <= 0
@@ -305,6 +337,14 @@ class Adult extends Living {
     if (frameCount % (10 / worldSpeed) === 0) this.repRate--;
   }
   targetBlend(foodGrid){
+
+    if (this.job) {
+      let jobDir = this.jobAction();
+      let br = this.boundaryRepulsion();
+      if (jobDir) return { x: jobDir.x + br.x, y: jobDir.y + br.y };
+      return null; // working in place, stop steering
+    }
+
     let n = this.sampleNoise()
     if (!n) return null
 
@@ -436,7 +476,34 @@ class farmland extends RectangularStructure {
     this.capacity = config.capacity;
     this.job = "farmer";
     this.uiClass = WorkerAssignUI;
+    this.crops = [];
+    this.spawnCrops(config.type)
   }
+
+  spawnCrops(type){
+    let rows = 3
+    let cols = 4
+    let padX = this.width/(cols+1)
+    let padY = this.height/(rows+1)
+
+    for (let col = 1; col <= cols; col++) {
+      for (let row = 1; row <= rows; row++) {
+        data.structures.push(new FarmCrop({
+          x: this.x + padX * col,
+          y: this.y + padY * row,
+          type:type,
+          size: 6,
+          color: [60, 160, 40],
+          parent:this,
+        }))
+      }
+    }
+  }
+  update() {
+    this.render();
+    for (let c of this.crops) c.update();
+  }
+
 }
 
 class StockPile extends RectangularStructure {
@@ -468,6 +535,41 @@ let structureConfigs = {
     for: StockPile,
   },
 };
+
+
+//Crops
+
+class FarmCrop extends Entity{
+  constructor(config){
+    super(config)
+    this.x = config.x
+    this.y = config.y 
+    this.type = config.type
+    this.growthStage = 0
+    this.harvestStage = 3
+    this.watered = false
+    this.harvestAmount = config.harvestAmount ?? 1
+    this.resource = config.type
+    this.parent = config.parent
+
+  }
+
+  render() {
+    let s = map(this.growthStage, 0, this.harvestStage, 3, 10);
+    let g = map(this.growthStage, 0, this.harvestStage, 80, 200);
+    fill(this.watered ? color(60, g, 40) : color(180, 140, 60));
+    circle(this.x, this.y, s);
+  }
+
+  update() {
+    if (frameCount % (400 / worldSpeed) === 0) {
+      this.watered = false;
+    }
+    this.render();
+  }
+
+}
+
 
 //UI classes
 
@@ -690,3 +792,5 @@ let employeeSelected = null;
 let buildableStructures = Object.values(structureConfigs).flatMap(entry => entry.for ? [entry] : Object.values(entry)
 )
 let totalDist = 0
+
+
