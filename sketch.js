@@ -24,7 +24,7 @@ function draw() {
     for (let i = 0; i < 4; i++) data.foods.push(new Carrot(stats.carrot));
   }
 
-  if (frameCount % (800 / worldSpeed) === 0) {
+  if (frameCount % (8000 / worldSpeed) === 0) {
     grow();
   }
 

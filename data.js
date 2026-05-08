@@ -68,7 +68,7 @@ let jobBehaviours = {
     findTarget: (entity) => findNearestJobInteract(entity),
     onWorkComplete: (entity, target) => {
       if(target.growthStage >= target.harvestStage){
-        entity.storage.push(target.resource* target.harvestAmount) 
+        entity.storage.push({ resource: target.resource, amount:target.harvestAmount }) 
         target.growthStage = 0;
       }else{
         target.growthStage++
@@ -113,6 +113,7 @@ class Living extends Entity {
     this.maxHunger = config.maxHunger;
     this.hungerRate = config.hungerRate;
     this.vel = config.vel;
+    this.baseVel = this.vel
     this.targetVel = this.vel;
     this.direction = { x: random(), y: random() };
     this.noiseOffset = getRandomIntInclusive(1000, 9000);
@@ -238,7 +239,7 @@ class Living extends Entity {
     this.y += this.direction.y * this.vel * worldSpeed
     
     
-    this.vel += (this.targetVel - this.vel) * 0.004 * worldSpeed
+    this.vel += (this.targetVel - this.vel) * 0.009 * worldSpeed
     this.touchingBoundary()
   }
   
@@ -307,10 +308,15 @@ class Adult extends Living {
 
     if (!this.jobTarget) {
       findNearestJobInteract(this);
+      console.log(`I FOUND THE STRUCTURE`)
       this.jobState = 'traversing';
     }
     let nearest = this.jobTarget;
-    if (!this.jobTarget) return null;
+    if (!nearest){
+      console.log(`I have no targets near me :(`)
+      this.targetVel = this.baseVel;
+      return null;
+    }
     
     let dx = nearest.x - this.x;
     let dy = nearest.y - this.y;
@@ -318,6 +324,7 @@ class Adult extends Living {
 
     if (distSq > 12*12){
       this.jobState = 'traversing'
+      this.targetVel = this.baseVel
       let len = sqrt(distSq)
       let slowingRadius = 60;
       let speed = len < slowingRadius ? len / slowingRadius : 1;
@@ -333,7 +340,7 @@ class Adult extends Living {
     if (frameCount % (60 / worldSpeed) === 0) {
       behaviour.onWorkComplete(this, nearest);
       this.jobTarget = null; // find next target next frame
-      this.targetVel = this.vel;
+      this.targetVel = this.baseVel;
     }
     return null; // don't steer while working
   }
@@ -352,6 +359,8 @@ class Adult extends Living {
     if (this.job) {
     
     if (this.hunger < this.maxHunger * 0.3) {
+      this.targetVel = this.baseVel
+      this.jobTarget = null
       return super.targetBlend(foodGrid);
     }
 
@@ -461,7 +470,6 @@ class Crop extends Food {
     this.cropType = config.cropType
     this.stage = 0
     this.health = 10
-    this.wateredPlot = false
   }
   update(){
     if (frameCount % 400 === 0){
@@ -507,8 +515,6 @@ class farmland extends RectangularStructure {
   constructor(config) {
     super(config);
     this.crop = config.type;
-    this.stage = 0;
-    this.watered = false;
     this.workers = [];
     this.capacity = config.capacity;
     this.job = "farmer";
@@ -668,7 +674,7 @@ class WorkerAssignUI extends UIWindow {
     this.structure = structure;
   }
   maxScroll() {
-    return max(0, unemployed.length * entryHeight - 23/32*this.height);
+    return max(0, this.getAssignable().length * entryHeight - 23/32*this.height);
   }
   drawRow(e, i) {
     let s = this.structure;
