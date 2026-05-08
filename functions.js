@@ -427,21 +427,30 @@ function findNearestJobInteract(i){
   let nearest = null;
   let nearestDist = Infinity;
   
-  let searchPool = data.structures.filter(behaviour.requirement);
+  let searchPool = [];
+  if (i.assignedStructure?.crops) {
+    searchPool = i.assignedStructure.crops.filter(behaviour.requirement);
+  }
+  if (searchPool.length === 0) {
+    searchPool = data.structures
+      .filter(s => s instanceof farmland)
+      .flatMap(s => s.crops)
+      .filter(behaviour.requirement);
+  }
   let grid = createGrid(searchPool, cellsize);
   
   let cellX = Math.floor((i.x + i.size / 2) / cellsize);
   let cellY = Math.floor((i.y + i.size / 2) / cellsize);
 
-  for (let ox = -2; ox <= 2; ox++) {
-    for (let oy = -2; oy <= 2; oy++) {
+  for (let ox = -4; ox <= 4; ox++) {
+    for (let oy = -4; oy <= 4; oy++) {
       let key = `${cellX + ox},${cellY + oy}`;
       if (!grid.has(key)) continue;
 
 
       for (let resource of grid.get(key)) {
-        let dx = i.x + i.size / 2 - (resource.x + resource.size / 2);
-        let dy = i.y + i.size / 2 - (resource.y + resource.size / 2);
+        let dx = i.x + i.size / 2 - (resource.x);
+        let dy = i.y + i.size / 2 - (resource.y);
         let distanceSq = dx * dx + dy * dy;
 
         if (distanceSq < nearestDist) {

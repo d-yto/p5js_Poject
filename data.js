@@ -13,7 +13,7 @@ let stats = {
   adult: {
     color: [132, 102, 100],
     get vel() {
-      return getRandomIntInclusive(0.9, 1.1);
+      return getRandomNumInclusive(0.9, 1.1);
     },
     type: "adult",
     get age() {
@@ -29,7 +29,7 @@ let stats = {
   child: {
     color: [100, 130, 132],
     get vel() {
-      return getRandomIntInclusive(0.7, 0.9);
+      return getRandomNumInclusive(0.7, 0.9);
     },
     type: "kid",
     age: 0,
@@ -77,7 +77,7 @@ let jobBehaviours = {
     }
   },
   lumberjack: {
-    requirement: (item) => (item.type === 'tree' || item.growthStage >= harvestStage),
+    requirement: (item) => (item.type === 'tree' || item.growthStage >= item.harvestStage),
     onWorkComplete: (entity, target) => {
       target.hp--
       if(target.growthStage >= target.harvestStage){
@@ -305,24 +305,35 @@ class Adult extends Living {
   jobAction(){
     if (!this.job) return null 
 
-    if (!this.jobTarget) findNearestJobInteract(this);
+    if (!this.jobTarget) {
+      findNearestJobInteract(this);
+      this.jobState = 'traversing';
+    }
     let nearest = this.jobTarget;
     if (!this.jobTarget) return null;
+    
+    let dx = nearest.x - this.x;
+    let dy = nearest.y - this.y;
+    let distSq = dx * dx + dy * dy
 
-
-    if (nearest.dist>50){
-      this.jobstate = 'traversing'
-      
-      return
+    if (distSq > 12*12){
+      this.jobState = 'traversing'
+      let len = sqrt(distSq)
+      let slowingRadius = 60;
+      let speed = len < slowingRadius ? len / slowingRadius : 1;
+      return { x: (dx / len) * speed, y: (dy / len) * speed };
     }
+    
     
     if (this.jobState !== `working`){
       this.jobState = `working`
+      this.targetVel = 0;
     }
     let behaviour = jobBehaviours[this.job];
     if (frameCount % (60 / worldSpeed) === 0) {
       behaviour.onWorkComplete(this, nearest);
       this.jobTarget = null; // find next target next frame
+      this.targetVel = this.vel;
     }
     return null; // don't steer while working
   }
@@ -339,10 +350,36 @@ class Adult extends Living {
   targetBlend(foodGrid){
 
     if (this.job) {
+    
+    if (this.hunger < this.maxHunger * 0.3) {
+      return super.targetBlend(foodGrid);
+    }
+
+
+      if(this.assignedStructure){
+        let sx = this.assignedStructure.x + this.assignedStructure.width/2
+        let sy = this.assignedStructure.y + this.assignedStructure.height/2
+        let dx = sx - this.x
+        let dy = sy - this.y
+        let distSq = dx * dx + dy * dy 
+
+        if (distSq > 150 * 150) {
+        this.jobState = 'returning';
+        this.jobTarget = null;
+        let len = Math.sqrt(distSq);
+        let slowingRadius = 150;
+        // slows as they approach the structure boundary
+        let speed = len < slowingRadius ? len / slowingRadius : 1;
+        let br = this.boundaryRepulsion();
+        return { x: (dx / len) * speed + br.x, y: (dy / len) * speed + br.y };
+        }
+      }
+      
       let jobDir = this.jobAction();
       let br = this.boundaryRepulsion();
       if (jobDir) return { x: jobDir.x + br.x, y: jobDir.y + br.y };
       return null; // working in place, stop steering
+
     }
 
     let n = this.sampleNoise()
@@ -421,7 +458,7 @@ class Food extends Entity {
 class Crop extends Food {
   constructor(config){
     super(config)
-    this.cropType = this.cropType
+    this.cropType = config.cropType
     this.stage = 0
     this.health = 10
     this.wateredPlot = false
@@ -481,14 +518,14 @@ class farmland extends RectangularStructure {
   }
 
   spawnCrops(type){
-    let rows = 3
-    let cols = 4
+    let rows = 5
+    let cols = 6
     let padX = this.width/(cols+1)
     let padY = this.height/(rows+1)
 
     for (let col = 1; col <= cols; col++) {
       for (let row = 1; row <= rows; row++) {
-        data.structures.push(new FarmCrop({
+        this.crops.push(new FarmCrop({
           x: this.x + padX * col,
           y: this.y + padY * row,
           type:type,
@@ -671,28 +708,22 @@ class WorkerAssignUI extends UIWindow {
     let atCap = s.workers.length >= s.capacity;
 
     this.getAssignable().forEach((e, i) => {
-      let entryY = 28 * i + winHeight / 6 + 22 - this.scrollOffset;
-      let inbounds =
-        mx > 115 &&
-        mx < 115 + (this.width - marginWidthUI * 2 - 115) &&
-        my > entryY &&
-        my < entryY + 25 &&
-        my > marginHeightUI * 2 &&
-        my < winHeight - marginHeightUI;
-
-      if (!inbounds) return;
-
-      if (s.workers.includes(e)) {
-        // if worker is already assigned-- unassingn them when clicked
-        s.workers = s.workers.filter((w) => w !== e);
-        e.job = null;
-        e.assignedStructure = null;
-      } else if (!atCap) {
+    let entryY = 28 * i + winHeight / 6 + 22 - this.scrollOffset;
+    let clickBox = { x: 115, y: entryY, w: winWidth - marginWidthUI * 2 - 115, h: 25 };
+    
+    if (mx > clickBox.x && mx < clickBox.x + clickBox.w && 
+        my > clickBox.y && my < clickBox.y + clickBox.h) {
+      if (!s.workers.includes(e) && !atCap) {
         s.workers.push(e);
-        e.assignedStructure = s;
         e.job = s.job;
+        e.assignedStructure = s;  // ← ADD THIS LINE
+      } else if (s.workers.includes(e)) {
+        s.workers.splice(s.workers.indexOf(e), 1);
+        e.job = null;
+        e.assignedStructure = null;  // ← AND CLEAR IT WHEN UNASSIGNING
       }
-    });
+    }
+  });
   }
 }
 
@@ -788,7 +819,7 @@ let scrollTarget = 0;
 let unemployed = data.people.filter(
   (c) => c.type === "adult" && c.job === null,
 );
-let employeeSelected = null;
+
 let buildableStructures = Object.values(structureConfigs).flatMap(entry => entry.for ? [entry] : Object.values(entry)
 )
 let totalDist = 0
