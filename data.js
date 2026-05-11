@@ -239,7 +239,7 @@ class Living extends Entity {
     this.y += this.direction.y * this.vel * worldSpeed
     
     
-    this.vel += (this.targetVel - this.vel) * 0.009 * worldSpeed
+    this.vel += (this.targetVel - this.vel) * 0.09 * worldSpeed
     this.touchingBoundary()
   }
   
@@ -302,92 +302,134 @@ class Adult extends Living {
     this.jobState = 'idle'; // eg idle or walking or chopping a tree or watering plants so on and so forth
     this.jobTarget = null;
     this.storage = [];
+    this.jobSearchCooldown = 0;
+    this.workTimer = 0;
+    this.targetStockPile = null
   }
-  jobAction(){
-    if (!this.job) return null 
 
-    if (!this.jobTarget) {
+  seekPoint(t, slowingRadius){
+    let dx = t.x - this.x
+    let dy = t.y - this.y
+    let dist = sqrt(dx * dx + dy * dy)
+    if (dist === 0) return { x: 0 , y: 0 , dist:0 }
+    let speed = dist< slowingRadius ? dist/slowingRadius : 1
+    this.targetVel = this.baseVel
+    this.vel = max(this.vel, this.baseVel*0.5)
+    let br = this.boundaryRepulsion()
+    return { x: (dx/dist)*speed +br.x, y: (dy/dist)*speed + br.y, dist:dist}
+
+  }
+
+  pileCheck(){
+    let nearest = null;
+    let nearestDistSq = Infinity
+    for (let s of data.structures){
+      if(!(s instanceof StockPile)) continue
+      if (s.currentStorage >= s.storageMax) continue
+      let cx = s.x + s.width/2
+      let cy = s.y + s.height/2
+      let dx = cx - this.x
+      let dy = cy - this.y
+      let distSq = dx*dx + dy*dy
+      if(distSq<nearestDistSq){
+        nearestDistSq = distSq
+        nearest = s
+      } 
+    }
+    return nearest
+  }
+
+  jobMove(){
+    if(!this.job) return
+    // If it has storage
+    if (this.storage.length > 0){
+      if (!this.targetStockPile||this.targetStockPile.currentStorage >= this.targetStockPile.storageMax){
+        this.targetStockPile = this.pileCheck()
+      }
+      if (this.targetStockPile){
+        let pileCenter =  {
+          x: this.targetStockPile.x + this.targetStockPile.width/2,
+          y: this.targetStockPile.y + this.targetStockPile.height/2,
+        }
+        let seek = this.seekPoint(pileCenter,60)
+        if (seek.dist<20){
+          this.targetStockPile.currentStorage += this.storage.length;
+          this.storage = [];
+        } else {
+          this.jobState = 'depositing'
+          return seek
+        }
+        
+      }
+    }
+
+    if(!this.jobTarget){
+      if (this.jobSearchCooldown <= 0) {
       findNearestJobInteract(this);
-      console.log(`I FOUND THE STRUCTURE`)
+      this.jobSearchCooldown = 30;
+      } else {
+        this.jobSearchCooldown--;
+      }
+      if (!this.jobTarget) {
+        this.jobState = 'idle';
+        this.targetVel = this.baseVel;
+        return null; // If they dont have anything to do then I guess they can just wander
+      }
       this.jobState = 'traversing';
+      this.workTimer = 60
     }
-    let nearest = this.jobTarget;
-    if (!nearest){
-      console.log(`I have no targets near me :(`)
-      this.targetVel = this.baseVel;
-      return null;
-    }
-    
-    let dx = nearest.x - this.x;
-    let dy = nearest.y - this.y;
-    let distSq = dx * dx + dy * dy
 
-    if (distSq > 12*12){
-      this.jobState = 'traversing'
-      this.targetVel = this.baseVel
-      let len = sqrt(distSq)
-      let slowingRadius = 60;
-      let speed = len < slowingRadius ? len / slowingRadius : 1;
-      return { x: (dx / len) * speed, y: (dy / len) * speed };
-    }
+
+    // set our target and go to it
+    let t = this.jobTarget
+    let seek = this.seekPoint(this.jobTarget, 60)
+    if (seek.dist > 12) return seek
+
+    // once its found, work on the dang project
     
+      this.jobState = 'working'
+      this.targetVel = 0
     
-    if (this.jobState !== `working`){
-      this.jobState = `working`
-      this.targetVel = 0;
-    }
-    let behaviour = jobBehaviours[this.job];
-    if (frameCount % (60 / worldSpeed) === 0) {
-      behaviour.onWorkComplete(this, nearest);
-      this.jobTarget = null; // find next target next frame
+
+    this.workTimer -= worldSpeed;
+    if (this.workTimer <= 0) {
+      jobBehaviours[this.job].onWorkComplete(this, t);
+      this.jobTarget = null;
+      this.jobState = 'idle';
+      this.jobSearchCooldown = 0;
+      this.vel = this.baseVel;
       this.targetVel = this.baseVel;
     }
-    return null; // don't steer while working
+
+return null;
+
   }
- 
-  canReproduce() {
-    return (
-      this.age >= 18 && this.hunger >= 0.7 * this.maxHunger && this.repRate <= 0
-    );
-  }
-  update(foodGrid) {
-    super.update(foodGrid); // calls Living's update which handles movement/render
-    if (frameCount % (10 / worldSpeed) === 0) this.repRate--;
-  }
+  
   targetBlend(foodGrid){
 
     if (this.job) {
-    
-    if (this.hunger < this.maxHunger * 0.3) {
-      this.targetVel = this.baseVel
-      this.jobTarget = null
-      return super.targetBlend(foodGrid);
-    }
+      if (this.hunger < this.maxHunger * 0.3) {
+        this.vel = this.baseVel
+        this.targetVel = this.baseVel
+        this.jobTarget = null
+        return super.targetBlend(foodGrid);
+      }
 
 
-      if(this.assignedStructure){
-        let sx = this.assignedStructure.x + this.assignedStructure.width/2
-        let sy = this.assignedStructure.y + this.assignedStructure.height/2
-        let dx = sx - this.x
-        let dy = sy - this.y
-        let distSq = dx * dx + dy * dy 
-
-        if (distSq > 150 * 150) {
+      if (this.assignedStructure) {
+      let sx = this.assignedStructure.x + this.assignedStructure.width / 2;
+      let sy = this.assignedStructure.y + this.assignedStructure.height / 2;
+      let dx = sx - this.x;
+      let dy = sy - this.y;
+      if (dx * dx + dy * dy > 150 * 150) {
         this.jobState = 'returning';
         this.jobTarget = null;
-        let len = Math.sqrt(distSq);
-        let slowingRadius = 150;
-        // slows as they approach the structure boundary
-        let speed = len < slowingRadius ? len / slowingRadius : 1;
-        let br = this.boundaryRepulsion();
-        return { x: (dx / len) * speed + br.x, y: (dy / len) * speed + br.y };
-        }
+        return this.seekPoint({ x: sx, y: sy }, 150);
       }
+    }
+
       
-      let jobDir = this.jobAction();
-      let br = this.boundaryRepulsion();
-      if (jobDir) return { x: jobDir.x + br.x, y: jobDir.y + br.y };
-      return null; // working in place, stop steering
+      return this.jobMove()
 
     }
 
@@ -545,6 +587,9 @@ class farmland extends RectangularStructure {
   update() {
     this.render();
     for (let c of this.crops) c.update();
+  }
+  closestPileCheck(){
+
   }
 
 }
