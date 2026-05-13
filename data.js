@@ -314,7 +314,7 @@ class Adult extends Living {
     if (dist === 0) return { x: 0 , y: 0 , dist:0 }
     let speed = dist< slowingRadius ? dist/slowingRadius : 1
     this.targetVel = this.baseVel
-    this.vel = max(this.vel, this.baseVel*0.5)
+    
     let br = this.boundaryRepulsion()
     return { x: (dx/dist)*speed +br.x, y: (dy/dist)*speed + br.y, dist:dist}
 
@@ -372,7 +372,7 @@ class Adult extends Living {
       }
       if (!this.jobTarget) {
         this.jobState = 'idle';
-        this.targetVel = this.baseVel;
+        this.targetVel = (this.baseVel)*0.3;
         return null; // If they dont have anything to do then I guess they can just wander
       }
       this.jobState = 'traversing';
@@ -381,6 +381,7 @@ class Adult extends Living {
 
 
     // set our target and go to it
+    this.jobTarget = findNearestJobInteract(this)
     let t = this.jobTarget
     let seek = this.seekPoint(this.jobTarget, 60)
     if (seek.dist > 12) return seek
