@@ -115,7 +115,7 @@ function getFreaky() {
   /* Checks for other applicable entities to reproduce with.
     Must be >= 18, relatively full on hunger, and have a repRate of 0 to be applicable */
   const cellsize = 50;
-  const applicable = data.people.filter((i) => i.canReproduce?.());
+  const applicable = data.people.filter((i) => i.canReproduce);
   const grid = createGrid(applicable, cellsize);
   const checked = new Set();
   for (let i of applicable) {
@@ -410,6 +410,7 @@ function doubleClicked() {
   if (occupied) {
     data.selected = occupied;
     let UIClass = occupied.uiClass;
+    console.log (data.selected)
     if (!UIClass) return;
     data.activeUI = new UIClass(occupied);
   }

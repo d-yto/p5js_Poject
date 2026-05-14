@@ -22,7 +22,7 @@ let stats = {
     size: 12,
     hunger: 43,
     maxHunger: 60,
-    hungerRate: 1,
+    hungerRate: 0.3,
     repRateMin: 0,
     repRateMax: 500,
   },
@@ -36,7 +36,7 @@ let stats = {
     size: 8,
     hunger: 17,
     maxHunger: 25,
-    hungerRate: 1,
+    hungerRate: 0.3,
   },
   carrot: {
     foodName: "carrot",
@@ -72,6 +72,7 @@ let jobBehaviours = {
         target.growthStage = 0;
       }else{
         target.growthStage++
+        target.wateredResetTime = 400
       }
       target.watered = true
     }
@@ -307,6 +308,10 @@ class Adult extends Living {
     this.targetStockPile = null
   }
 
+  get canReproduce() {
+    return this.repRate <= 0 && this.partner === null && this.job === null;
+  } 
+
   seekPoint(t, slowingRadius){
     let dx = t.x - this.x
     let dy = t.y - this.y
@@ -353,8 +358,9 @@ class Adult extends Living {
         }
         let seek = this.seekPoint(pileCenter,60)
         if (seek.dist<20){
-          this.targetStockPile.currentStorage += this.storage.length;
-          this.storage = [];
+          while(this.storage.length > 0 && this.targetStockPile.currentStorage < this.targetStockPile.storageMax){
+            this.targetStockPile.items.push(this.storage.pop())
+          }
         } else {
           this.jobState = 'depositing'
           return seek
@@ -381,7 +387,6 @@ class Adult extends Living {
 
 
     // set our target and go to it
-    this.jobTarget = findNearestJobInteract(this)
     let t = this.jobTarget
     let seek = this.seekPoint(this.jobTarget, 60)
     if (seek.dist > 12) return seek
@@ -468,6 +473,10 @@ return null;
     // no partner, or too hungry — fall through to food seeking
     return super.targetBlend(foodGrid)
   }
+  update(foodGrid) {
+    if (this.repRate > 0) this.repRate = max(0, this.repRate - worldSpeed);
+    super.update(foodGrid);
+  }
 }
 
 class Child extends Living {
@@ -513,11 +522,9 @@ class Crop extends Food {
     this.cropType = config.cropType
     this.stage = 0
     this.health = 10
+    this.wateredResetTime = 400
   }
   update(){
-    if (frameCount % 400 === 0){
-      this.stage = min(this.stage + 1, 3)
-    }
     this.render()
   }
 }
@@ -598,8 +605,11 @@ class farmland extends RectangularStructure {
 class StockPile extends RectangularStructure {
   constructor(config) {
     super(config);
-    this.currentStorage = 0;
+    this.items = [];
     this.storageMax = config.storageMax;
+  }
+  get currentStorage(){
+    return this.items.length
   }
 }
 
@@ -640,6 +650,7 @@ class FarmCrop extends Entity{
     this.harvestAmount = config.harvestAmount ?? 1
     this.resource = config.type
     this.parent = config.parent
+    this.wateredResetTime = 0;
 
   }
 
@@ -651,8 +662,10 @@ class FarmCrop extends Entity{
   }
 
   update() {
-    if (frameCount % (400 / worldSpeed) === 0) {
+    if (this.wateredResetTime === 0) {
       this.watered = false;
+    } else {
+      this.wateredResetTime--
     }
     this.render();
   }
