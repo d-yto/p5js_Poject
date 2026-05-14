@@ -46,6 +46,11 @@ let stats = {
     rotTime: 5,
     rotRate: 0.9,
   },
+  wheat: {
+    foodName:`wheat`,
+    color:[145, 106, 13],
+    size:5
+  }
 };
 
 let jobs = {
@@ -64,7 +69,7 @@ let names = [
 ];
 let jobBehaviours = {
   farmer:{
-    requirement: (item) => item instanceof FarmCrop && (item.watered === false || item.growthStage >= item.harvestStage),
+    requirement: (item) => item instanceof FarmCrop && (item.watered === false || item.watered === false && item.growthStage >= item.harvestStage),
     findTarget: (entity) => findNearestJobInteract(entity),
     onWorkComplete: (entity, target) => {
       if(target.growthStage >= target.harvestStage){
@@ -72,8 +77,8 @@ let jobBehaviours = {
         target.growthStage = 0;
       }else{
         target.growthStage++
-        target.wateredResetTime = 400
       }
+      target.wateredResetTime = 400
       target.watered = true
     }
   },
@@ -522,7 +527,6 @@ class Crop extends Food {
     this.cropType = config.cropType
     this.stage = 0
     this.health = 10
-    this.wateredResetTime = 400
   }
   update(){
     this.render()
@@ -586,7 +590,7 @@ class farmland extends RectangularStructure {
           y: this.y + padY * row,
           type:type,
           size: 6,
-          color: [60, 160, 40],
+          cropColor: structureConfigs.farm[type].cropColor,
           parent:this,
         }))
       }
@@ -607,9 +611,34 @@ class StockPile extends RectangularStructure {
     super(config);
     this.items = [];
     this.storageMax = config.storageMax;
+    this.displayed = []
   }
   get currentStorage(){
     return this.items.length
+  }
+  
+      
+      
+
+  update(){
+    this.render()
+    const rows = 10, cols = 10;
+    let padX = this.width/(cols+1)
+    let padY = this.height/(rows+1)
+    let row = 1, col = 1;
+    for (let i = 0; i < this.currentStorage; i++){
+        let item = this.items[i]
+        let type = item.resource;
+        fill(stats[type].color)
+        circle(this.x + padX * col, this.y + padY * row, stats[type].size)
+        
+        if (row < rows) {
+          row++;
+        } else if (col < cols) {
+          row = 1;
+          col++;
+        }
+      }
   }
 }
 
@@ -623,6 +652,17 @@ let structureConfigs = {
       capacity: 5,
       structureName:`Wheat Farm`,
       for: farmland,
+      cropColor:[60, 160, 40],
+    },
+    carrot: {
+      color: [64, 33, 27],
+      type: `carrot`,
+      width: 100,
+      height: 100,
+      capacity: 5,
+      structureName:`Carrot Farm`,
+      for: farmland,
+      cropColor:[0,0,0]
     },
   },
   pile: {
@@ -651,14 +691,19 @@ class FarmCrop extends Entity{
     this.resource = config.type
     this.parent = config.parent
     this.wateredResetTime = 0;
+    this.baseColor = [...config.cropColor]
 
   }
 
   render() {
-    let s = map(this.growthStage, 0, this.harvestStage, 3, 10);
-    let g = map(this.growthStage, 0, this.harvestStage, 80, 200);
-    fill(this.watered ? color(60, g, 40) : color(180, 140, 60));
-    circle(this.x, this.y, s);
+    let size = map(this.growthStage, 0, this.harvestStage, 3, 10);
+    
+    let base = color(this.baseColor[0], this.baseColor[1], this.baseColor[2]);
+    let dry = color(180, 140, 60); // universal dry soil color
+    let finalColor = this.watered ? base : dry;
+    
+    fill(finalColor);
+    circle(this.x, this.y, size);
   }
 
   update() {
