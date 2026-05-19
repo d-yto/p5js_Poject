@@ -1092,3 +1092,13 @@ let buildableStructures = Object.values(structureConfigs).flatMap((entry) =>
   entry.for ? [entry] : Object.values(entry),
 );
 let totalDist = 0;
+
+
+let dayTime = 0
+let dayLength = 2400
+let dayCount = 0
+let yearLength = 1
+
+const PHASE_DAY_START = 0.0
+const PHASE_EVENING_START = 0.6
+const PHASE_NIGHT_START = 0.8

@@ -20,12 +20,17 @@ function draw() {
   if (frameCount % (120 / worldSpeed) === 0) {
     rotUpdate();
   }
-  if (frameCount % (20 / worldSpeed) === 0) {
+  if (frameCount % (40 / worldSpeed) === 0) {
     for (let i = 0; i < 4; i++) data.foods.push(new Carrot(stats.carrot));
   }
 
-  if (frameCount % (800 / worldSpeed) === 0) {
-    grow();
+  dayTime += worldSpeed;
+  if (dayTime >= dayLength) {
+    dayTime = 0;
+    dayCount++;
+    if (dayCount % yearLength === 0) {
+      grow();
+    }
   }
 
   const foodGrid = createGrid(data.foods, 50);

@@ -481,3 +481,10 @@ function findNearestJobInteract(i) {
   i.jobTarget = nearest;
   return nearest;
 }
+
+function getDayPhase(){
+  t = dayLength/dayTime
+  if (t<PHASE_DAY_START) return 'day';
+  if (t<PHASE_EVENING_START) return 'evening';
+  return 'night';
+}
