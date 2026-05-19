@@ -48,7 +48,6 @@ function hungerBar(i) {
   rect(bx, by, barWidth * decFill, barHeight);
 }
 
-
 /* **ENTITY LIFECYCLE** */
 function birth(i, e) {
   /* Called when parents meet, initializes the childs birth.
@@ -62,8 +61,8 @@ function birth(i, e) {
   child.hunger = child.maxHunger * getRandomNumInclusive(0.5, 0.7);
   data.people.push(child);
   if (roll === 1) {
-  /* inherit from i */
-  child.vel = Math.max(0.1, i.vel - getRandomNumInclusive(0.1, 0.33));
+    /* inherit from i */
+    child.vel = Math.max(0.1, i.vel - getRandomNumInclusive(0.1, 0.33));
   }
   if (roll === 2) {
     /* inherit from e */
@@ -71,7 +70,10 @@ function birth(i, e) {
   }
   if (roll === 3) {
     /* avg both parents, include minor mutations */
-    child.vel = Math.max(0.1, (i.vel + e.vel) / 2 - getRandomNumInclusive(0.1, 0.33));
+    child.vel = Math.max(
+      0.1,
+      (i.vel + e.vel) / 2 - getRandomNumInclusive(0.1, 0.33),
+    );
   }
 
   i.hunger -= 25;
@@ -87,8 +89,14 @@ function birth(i, e) {
 function death() {
   /* removes people if they should die */
   let before = data.people.length;
-  data.people = data.people.filter(p => !p.shouldDie());
+  data.people = data.people.filter((p) => !p.shouldDie());
   deathToll += before - data.people.length;
+
+  const alive = new Set(data.people);
+  for (let s of data.structures) {
+    if (!s.workers) continue;
+    s.workers = s.workers.filter(e => alive.has(e));
+  }
 }
 function grow() {
   /* Function for when each year passes, to grow by 1 year.
@@ -153,8 +161,6 @@ function getFreaky() {
     }
   }
 }
-
-
 
 /* **COLLISION**  */
 function isColliding(object1, object2) {
@@ -328,32 +334,41 @@ function rotUpdate() {
 
 /* **INPUT / UI** */
 function mouseClicked() {
-  if(totalDist>10) { totalDist = 0; return } 
-  if (data.activeUI) { data.activeUI.handleclick(mouseX, mouseY); return } 
-  if(data.builderUI && data.builderUI.placing) { data.builderUI.handleclick(mouseX,mouseY); return }
-  
-  if (mouseY>winHeight&& mouseY<winHeight+buttonheight){
+  if (totalDist > 10) {
+    totalDist = 0;
+    return;
+  }
+  if (data.activeUI) {
+    data.activeUI.handleclick(mouseX, mouseY);
+    return;
+  }
+  if (data.builderUI && data.builderUI.placing) {
+    data.builderUI.handleclick(mouseX, mouseY);
+    return;
+  }
+
+  if (mouseY > winHeight && mouseY < winHeight + buttonheight) {
     if (mouseY > winHeight) {
-        if (mouseX > 0 && mouseX < 100) {
-            healthbar = !healthbar;
-        }
-        if (mouseX > 100 && mouseX < 200) {
-            if (worldSpeed === 1) worldSpeed *= 5;
-            else if (worldSpeed === 5) worldSpeed /= 5;
-        }
-        if(mouseX>200&& mouseX<300){
-            if (!data.builderUI) data.builderUI = new BuilderUI()
-            data.activeUI = data.builderUI;
-            data.selected = `builder`
-        }
-        return;
+      if (mouseX > 0 && mouseX < 100) {
+        healthbar = !healthbar;
       }
+      if (mouseX > 100 && mouseX < 200) {
+        if (worldSpeed === 1) worldSpeed *= 5;
+        else if (worldSpeed === 5) worldSpeed /= 5;
+      }
+      if (mouseX > 200 && mouseX < 300) {
+        if (!data.builderUI) data.builderUI = new BuilderUI();
+        data.activeUI = data.builderUI;
+        data.selected = `builder`;
+      }
+      return;
     }
+  }
 }
 function mousePressed() {
   if (mouseY > winHeight) return;
   if (data.activeUI) return;
-  totalDist = 0
+  totalDist = 0;
   isdragging = true;
   dragPosX = mouseX + camX;
   dragPosY = mouseY + camY;
@@ -362,7 +377,7 @@ function mouseDragged() {
   if (!isdragging) return;
   camX = dragPosX - mouseX;
   camY = dragPosY - mouseY;
-  totalDist += dist(mouseX,pmouseX,mouseY,pmouseY)
+  totalDist += dist(mouseX, pmouseX, mouseY, pmouseY);
   camX = constrain(camX, 0, mapWidth - winWidth);
   camY = constrain(camY, 0, mapHeight - winHeight);
 }
@@ -374,7 +389,7 @@ function keyPressed() {
   if (keyCode === 27) {
     data.selected = null;
     data.activeUI = null;
-    if(data.builderUI)data.builderUI.placing = false
+    if (data.builderUI) data.builderUI.placing = false;
     scrollTarget = 0;
   }
 }
@@ -410,7 +425,7 @@ function doubleClicked() {
   if (occupied) {
     data.selected = occupied;
     let UIClass = occupied.uiClass;
-    console.log (data.selected)
+    console.log(data.selected);
     if (!UIClass) return;
     data.activeUI = new UIClass(occupied);
   }
@@ -420,26 +435,26 @@ function mouseWheel(e) {
   if (data.activeUI) data.activeUI.updateScroll(e.delta);
 }
 
-function findNearestJobInteract(i){
-  let behaviour = jobBehaviours[i.job]
-  if (!behaviour) return null
+function findNearestJobInteract(i) {
+  let behaviour = jobBehaviours[i.job];
+  if (!behaviour) return null;
 
   const cellsize = 50;
   let nearest = null;
   let nearestDist = Infinity;
-  
+
   let searchPool = [];
   if (i.assignedStructure?.crops) {
     searchPool = i.assignedStructure.crops.filter(behaviour.requirement);
   }
   if (searchPool.length === 0) {
     searchPool = data.structures
-      .filter(s => s instanceof farmland)
-      .flatMap(s => s.crops)
+      .filter((s) => s instanceof farmland)
+      .flatMap((s) => s.crops)
       .filter(behaviour.requirement);
   }
   let grid = createGrid(searchPool, cellsize);
-  
+
   let cellX = Math.floor((i.x + i.size / 2) / cellsize);
   let cellY = Math.floor((i.y + i.size / 2) / cellsize);
 
@@ -448,17 +463,15 @@ function findNearestJobInteract(i){
       let key = `${cellX + ox},${cellY + oy}`;
       if (!grid.has(key)) continue;
 
-
       for (let resource of grid.get(key)) {
-        let dx = i.x + i.size / 2 - (resource.x);
-        let dy = i.y + i.size / 2 - (resource.y);
+        let dx = i.x + i.size / 2 - resource.x;
+        let dy = i.y + i.size / 2 - resource.y;
         let distanceSq = dx * dx + dy * dy;
 
         if (distanceSq < nearestDist) {
           nearest = resource;
           nearestDist = distanceSq;
         }
-
       }
     }
   }
@@ -468,4 +481,3 @@ function findNearestJobInteract(i){
   i.jobTarget = nearest;
   return nearest;
 }
-

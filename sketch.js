@@ -1,5 +1,5 @@
 function setup() {
-  noStroke()
+  noStroke();
   let canvas = createCanvas(winWidth, winHeight + buttonheight);
   pixelDensity(1);
   for (let i = 0; i < 20; i++) {
@@ -8,7 +8,7 @@ function setup() {
   for (let i = 0; i < 30; i++) {
     data.people.push(new Adult(stats.adult));
   }
-} 
+}
 
 function draw() {
   background(51);
@@ -24,23 +24,23 @@ function draw() {
     for (let i = 0; i < 4; i++) data.foods.push(new Carrot(stats.carrot));
   }
 
-  if (frameCount % (200 / worldSpeed) === 0) {
+  if (frameCount % (800 / worldSpeed) === 0) {
     grow();
   }
 
   const foodGrid = createGrid(data.foods, 50);
-  
-  for (let s of data.structures){
-    s.update()
+
+  for (let s of data.structures) {
+    s.update();
   }
-  
-  for (let f of data.foods){
-    f.update()
+
+  for (let f of data.foods) {
+    f.update();
   }
   for (let p of data.people) {
     p.update(foodGrid);
   }
-  
+
   eat();
   death();
   getFreaky();
@@ -50,21 +50,23 @@ function draw() {
   if (data.activeUI) {
     data.activeUI.render();
   }
-  if (data.builderUI && data.builderUI.placing && mouseY < winHeight){
-    let config = data.builderUI.selected
+  if (data.builderUI && data.builderUI.placing && mouseY < winHeight) {
+    let config = data.builderUI.selected;
 
-    let snappedX = round((mouseX - config.width / 2 + camX) / config.width) * config.width;
-    let snappedY = round((mouseY - config.height / 2 + camY) / config.height) * config.height;
-    let occupied = data.structures.find((c) => 
-      snappedX === c.x && snappedY === c.y // Simple tile equality check
+    let snappedX =
+      round((mouseX - config.width / 2 + camX) / config.width) * config.width;
+    let snappedY =
+      round((mouseY - config.height / 2 + camY) / config.height) *
+      config.height;
+    let occupied = data.structures.find(
+      (c) => snappedX === c.x && snappedY === c.y, // Simple tile equality check
     );
 
     push(); // Protect existing drawing styles
-    if (occupied){
-      fill(225,0,0,60)
-    }else{
+    if (occupied) {
+      fill(225, 0, 0, 60);
+    } else {
       fill(...config.color, 90);
-
     }
     noStroke();
     // Render at screen coordinates
@@ -81,6 +83,6 @@ function draw() {
   rect(200, winHeight, winWidth - 200, buttonheight);
   fill(255);
   text(data.people.length, 400, winHeight);
-  fill(90,30,120)
+  fill(90, 30, 120);
   rect(200, winHeight, winWidth - 500, buttonheight);
 }
