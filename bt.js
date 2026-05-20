@@ -126,7 +126,7 @@ const sequences = {
         conditions.isHungry,
         new Selector([
             actions.seekPileFood,
-            actions.seekWildFood
+            actions.seekWildFood,
 
         ])
     ]),
