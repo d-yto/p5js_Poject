@@ -549,9 +549,9 @@ class Adult extends Living {
       if (seek.dist < 15) {
         this.eatFromPile(this.targetFoodPile);
       }
-      return seek; // overrides job movement entirely while hungry
+      return seek; // overrides job movement while hungry
     }
-    // no pile available — fall through to wild food seeking
+    // if no pile available — fall through to wild food seeking
   } else {
     // reset when satisfied so the next hunger cycle triggers a fresh search
     this.targetFoodPile = null;
