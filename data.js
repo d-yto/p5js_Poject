@@ -198,6 +198,7 @@ class Living extends Entity {
     this.age = config.age;
     this.type = config.type;
     this.name = names[floor(random(0, names.length))];
+    this.BT = null;
   }
 
   touchingBoundary() {
@@ -265,35 +266,6 @@ class Living extends Entity {
     return null;
   }
 
-  targetBlend(foodGrid) {
-    let n = this.sampleNoise();
-    if (!n) return null;
-
-    let ix = n.x / n.len;
-    let iy = n.y / n.len;
-
-    let waddleStrength = 0.4 + sin(frameCount * 0.15) * 0.2;
-    ix *= waddleStrength;
-    iy *= waddleStrength;
-
-    if (this.hunger < this.maxHunger * 0.9) {
-      let f = this.targetFood(foodGrid);
-      if (f) {
-        let slowingRadius = 80;
-        let speed =
-          f.len < slowingRadius ? this.vel * (f.len / slowingRadius) : this.vel;
-        let dx = f.x * speed;
-        let dy = f.y * speed;
-
-        ix = ix * 0.15 + dx * 0.85;
-        iy = iy * 0.15 + dy * 0.85;
-      }
-    }
-
-    let br = this.boundaryRepulsion();
-    return { x: ix + br.x, y: iy + br.y };
-  }
-
   steer(target) {
     //updates direction vector
     let strength =
@@ -356,12 +328,44 @@ class Living extends Entity {
     );
     noStroke();
   }
+  findEatablePile() {
+    let nearest = null;
+    let nearestDistSq = Infinity;
+  
+    for (let s of data.structures) {
+      if (!(s instanceof StockPile)) continue;
+      // check if it has edible items
+      if (!s.items.some(item => stats[item.resource]?.hunger > 0)) continue;
+  
+      let cx = s.x + s.width / 2;
+      let cy = s.y + s.height / 2;
+      let dx = cx - this.x;
+      let dy = cy - this.y;
+      let dSq = dx * dx + dy * dy;
+      if (dSq < nearestDistSq) {
+        nearest = s;
+        nearestDistSq = dSq;
+      }
+    }
+    return nearest;
+    }
+  
+  eatFromPile(pile) {
+    let idx = pile.items.findIndex(item => stats[item.resource]?.hunger > 0);
+    if (idx === -1) { this.targetFoodPile = null; return; }
+  
+    let item = pile.items.splice(idx, 1)[0];
+    let hungerValue = stats[item.resource].hunger;
+    this.hunger = min(this.hunger + hungerValue, this.maxHunger);
+    this.targetFoodPile = null; 
+  }
 
   update(foodGrid) {
+    this.steeringTarget = null
     this.updateHunger();
-    let target = this.targetBlend(foodGrid);
+    this.BT.tick(this, {foodGrid})
     if (this.collisionCooldown > 0) this.collisionCooldown -= worldSpeed;
-    if (target) this.steer(target);
+    this.steer(this.steeringTarget);
     this.move();
     this.render();
     if (healthbar) hungerBar(this);
@@ -384,6 +388,7 @@ class Adult extends Living {
     this.targetStockPile = null;
     this.targetFoodPile = null;
     this.foodPileSearchCooldown = 0;
+    this.BT = adultTree
   }
 
   get canReproduce() {
@@ -424,38 +429,6 @@ class Adult extends Living {
     }
     return nearest;
   }
-
-  findEatablePile() {
-  let nearest = null;
-  let nearestDistSq = Infinity;
-
-  for (let s of data.structures) {
-    if (!(s instanceof StockPile)) continue;
-    // check if it has edible items
-    if (!s.items.some(item => stats[item.resource]?.hunger > 0)) continue;
-
-    let cx = s.x + s.width / 2;
-    let cy = s.y + s.height / 2;
-    let dx = cx - this.x;
-    let dy = cy - this.y;
-    let dSq = dx * dx + dy * dy;
-    if (dSq < nearestDistSq) {
-      nearest = s;
-      nearestDistSq = dSq;
-    }
-  }
-  return nearest;
-  }
-
-  eatFromPile(pile) {
-  let idx = pile.items.findIndex(item => stats[item.resource]?.hunger > 0);
-  if (idx === -1) { this.targetFoodPile = null; return; }
-
-  let item = pile.items.splice(idx, 1)[0];
-  let hungerValue = stats[item.resource].hunger;
-  this.hunger = min(this.hunger + hungerValue, this.maxHunger);
-  this.targetFoodPile = null; 
-}
 
   jobMove() {
     if (!this.job) return;
@@ -526,94 +499,7 @@ class Adult extends Living {
 
     return null;
   }
-
-  targetBlend(foodGrid) {
-    const HUNGRY_THRESHOLD = 0.45;
-
-    if (this.hunger < this.maxHunger * HUNGRY_THRESHOLD) {
-    // refresh pile target on cooldown
-    if (!this.targetFoodPile || this.foodPileSearchCooldown <= 0) {
-      this.targetFoodPile = this.findEatablePile();
-      this.foodPileSearchCooldown = 60; // check every ~1s
-    } else {
-      this.foodPileSearchCooldown--;
-    }
-
-    if (this.targetFoodPile) {
-      let pileCenter = {
-        x: this.targetFoodPile.x + this.targetFoodPile.width / 2,
-        y: this.targetFoodPile.y + this.targetFoodPile.height / 2,
-      };
-      let seek = this.seekPoint(pileCenter, 60);
-
-      if (seek.dist < 15) {
-        this.eatFromPile(this.targetFoodPile);
-      }
-      return seek; // overrides job movement while hungry
-    }
-    // if no pile available — fall through to wild food seeking
-  } else {
-    // reset when satisfied so the next hunger cycle triggers a fresh search
-    this.targetFoodPile = null;
-    this.foodPileSearchCooldown = 0;
-  }
-
-    if (this.job) {
-      if (this.hunger < this.maxHunger * 0.3) {
-        this.vel = this.baseVel;
-        this.targetVel = this.baseVel;
-        this.jobTarget = null;
-        return super.targetBlend(foodGrid);
-      }
-
-      if (this.assignedStructure) {
-        let sx = this.assignedStructure.x + this.assignedStructure.width / 2;
-        let sy = this.assignedStructure.y + this.assignedStructure.height / 2;
-        let dx = sx - this.x;
-        let dy = sy - this.y;
-        if (dx * dx + dy * dy > 150 * 150) {
-          this.jobState = "returning";
-          this.jobTarget = null;
-          return this.seekPoint({ x: sx, y: sy }, 150);
-        }
-      }
-
-      return this.jobMove();
-    }
-
-    let n = this.sampleNoise();
-    if (!n) return null;
-
-    let ix = n.x;
-    let iy = n.y;
-
-    if (this.partner && this.hunger >= this.maxHunger * 0.7) {
-      // only seek partner if not too hungry
-      let px = this.partner.x - this.x;
-      let py = this.partner.y - this.y;
-      let pLenSq = px * px + py * py;
-
-      if (pLenSq <= this.size * this.size && this.ID < this.partner.ID) {
-        birth(this, this.partner);
-        return null;
-      }
-
-      if (pLenSq > 0) {
-        let pLen = sqrt(pLenSq);
-        ix = ix * 0.3 + (px / pLen) * 0.7;
-        iy = iy * 0.3 + (py / pLen) * 0.7;
-      }
-
-      let br = this.boundaryRepulsion();
-      return { x: ix + br.x, y: iy + br.y };
-    }
-    if (this.partner) {
-      if (this.partner.partner === this) this.partner.partner = null;
-      this.partner = null;
-    }
-    // no partner, or too hungry — fall through to food seeking
-    return super.targetBlend(foodGrid);
-  }
+  
   update(foodGrid) {
     if (this.repRate > 0) this.repRate = max(0, this.repRate - worldSpeed);
     super.update(foodGrid);
@@ -623,6 +509,7 @@ class Adult extends Living {
 class Child extends Living {
   constructor(config) {
     super(config);
+    this.BT = childTree
   }
   growUp() {
     let adult = new Adult(stats.adult);

@@ -1,12 +1,12 @@
 const BT = {  SUCCESS:'SUCCESS', FAILURE:'FAILURE', RUNNING:'RUNNING'  }
 
-class Node {
+class NodeBase {
     // exists because I know I will likely need it later for debugging
     tick(){
     }
 }
 
-class Sequence extends Node {
+class Sequence extends NodeBase {
     constructor(children){
         super();
         this.children = children
@@ -22,7 +22,7 @@ class Sequence extends Node {
     }
 }
 
-class Selector extends Node {
+class Selector extends NodeBase {
     constructor(children){
         super();
         this.children = children
@@ -38,7 +38,7 @@ class Selector extends Node {
     }
 }
 
-class Condition extends Node {
+class Condition extends NodeBase {
     constructor(fn){
         super();
         this.fn = fn
@@ -48,7 +48,7 @@ class Condition extends Node {
     }
 }
 
-class Action extends Node {
+class Action extends NodeBase {
     constructor(fn){
         super();
         this.fn = fn
@@ -59,7 +59,9 @@ class Action extends Node {
 }
 
 
-const Nodes = {
+
+
+const actions = {
     wander: new Action((e,ctx) => {
         let n = e.sampleNoise();
         if (!n) return BT.RUNNING;
@@ -108,6 +110,9 @@ const Nodes = {
         }
         return BT.RUNNING
     }),
+}
+
+const conditions = {
     isHungry: new Condition((e, ctx) => {
         return e.hunger < e.maxHunger * 0.45
     }),
@@ -115,3 +120,34 @@ const Nodes = {
         return e.partner && e.hunger >= e.maxHunger * 0.7
     }),
 }
+
+const sequences = {
+    ifHungryEat: new Sequence([
+        conditions.isHungry,
+        new Selector([
+            actions.seekPileFood,
+            actions.seekWildFood
+
+        ])
+    ]),
+    reproduce:new Sequence([
+        conditions.canReproduce,
+        actions.seekPartner
+    ]),
+
+}
+
+const selectors = {
+
+}
+
+
+const childTree = new Selector([
+    sequences.ifHungryEat,
+    actions.wander,
+])
+const adultTree = new Selector([
+    sequences.ifHungryEat,
+    sequences.reproduce,
+    actions.wander,
+])
