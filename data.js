@@ -388,7 +388,7 @@ class Adult extends Living {
     this.targetStockPile = null;
     this.targetFoodPile = null;
     this.foodPileSearchCooldown = 0;
-    this.BT = adultTree
+    this.BT = BTrees.adultTree
   }
 
   get canReproduce() {
@@ -509,7 +509,7 @@ class Adult extends Living {
 class Child extends Living {
   constructor(config) {
     super(config);
-    this.BT = childTree
+    this.BT = BTrees.childTree
   }
   growUp() {
     let adult = new Adult(stats.adult);

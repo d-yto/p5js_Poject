@@ -488,3 +488,12 @@ function getDayPhase(){
   if (t<PHASE_EVENING_START) return 'evening';
   return 'night';
 }
+
+function makeWorkerTree(jobSubTree){
+    new Selector([
+        sequences.ifHungryEat,
+        new sequence([conditions.hasStorage, actions.depositStorage]),
+        jobSubTree,
+        actions.wander,
+    ])    
+} 

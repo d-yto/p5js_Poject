@@ -1,8 +1,11 @@
 const BT = {  SUCCESS:'SUCCESS', FAILURE:'FAILURE', RUNNING:'RUNNING'  }
 
 class NodeBase {
-    // exists because I know I will likely need it later for debugging
+    constructor(name = "Node"){
+        this.name = name
+    }
     tick(){
+        console.log(`Ticking: ${this.name}`)
     }
 }
 
@@ -110,14 +113,38 @@ const actions = {
         }
         return BT.RUNNING
     }),
+    depositStorage: new Action((e, ctx) => {
+        if(!e.targetStockPile || e.targetStockPile.currentStorage >= e.targetStockPile.StorageMax)e.targetStockPile = e.pileCheck();
+        if(targetStockPile){
+            let pileCenter = {
+                x: e.targetStockPile.x + e.targetStockPile.width / 2,
+                y: e.targetStockPile.y + e.targetStockPile.height / 2,
+            };
+            let seek = e.seekPoint(pileCenter,60)
+            if (seek.dist < 20 ){
+                while (
+                    e.storage.length > 0 &&
+                    e.targetStockPile.currentStorage <
+                    e.targetStockPile.storageMax
+                ) {
+            e.targetStockPile.items.push(e.storage.pop());}
+            } else {
+                e.jobState = "depositing";
+                return seek;
+            }
+        }
+    })
 }
 
 const conditions = {
     isHungry: new Condition((e, ctx) => {
-        return e.hunger < e.maxHunger * 0.45
+        return e.hunger < e.maxHunger * 0.85
     }),
     canReproduce: new Condition((e, ctx) => {
-        return e.partner && e.hunger >= e.maxHunger * 0.7
+        return e.partner && e.hunger >= e.maxHunger * 0.5
+    }),
+    hasStorage: new Condition((e,ctx) => {
+        return e.storage.length > 0
     }),
 }
 
@@ -140,14 +167,20 @@ const sequences = {
 const selectors = {
 
 }
+const BTrees = {
+    childTree: new Selector([
+        sequences.ifHungryEat,
+        actions.wander,
+    ]),
+    adultTree: new Selector([
+        sequences.ifHungryEat,
+        sequences.reproduce,
+        actions.wander,
+    ]),
+}
 
-
-const childTree = new Selector([
-    sequences.ifHungryEat,
-    actions.wander,
-])
-const adultTree = new Selector([
-    sequences.ifHungryEat,
-    sequences.reproduce,
-    actions.wander,
-])
+const jobSubTrees = {
+    farmer: new Selector([
+        actions.jo
+    ])
+}
