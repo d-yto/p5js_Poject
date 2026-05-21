@@ -363,7 +363,7 @@ class Living extends Entity {
   update(foodGrid) {
     this.steeringTarget = null
     this.updateHunger();
-    this.BT.tick(this, {foodGrid})
+    this.BT.tick(this, {foodGrid: foodGrid})
     if (this.collisionCooldown > 0) this.collisionCooldown -= worldSpeed;
     this.steer(this.steeringTarget);
     this.move();
@@ -867,11 +867,12 @@ class WorkerAssignUI extends UIWindow {
         if (!s.workers.includes(e) && !atCap) {
           s.workers.push(e);
           e.job = s.job;
-          e.assignedStructure = s; // ← ADD THIS LINE
+          e.assignedStructure = s; 
+          e.BT = makeWorkerTree(jobSubTrees[s.job])
         } else if (s.workers.includes(e)) {
           s.workers.splice(s.workers.indexOf(e), 1);
           e.job = null;
-          e.assignedStructure = null; // ← AND CLEAR IT WHEN UNASSIGNING
+          e.assignedStructure = null;
         }
       }
     });

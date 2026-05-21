@@ -490,9 +490,9 @@ function getDayPhase(){
 }
 
 function makeWorkerTree(jobSubTree){
-    new Selector([
+    return new Selector([
         sequences.ifHungryEat,
-        new sequence([conditions.hasStorage, actions.depositStorage]),
+        new Sequence([conditions.hasStorage, actions.depositStorage]),
         jobSubTree,
         actions.wander,
     ])    
