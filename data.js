@@ -363,7 +363,7 @@ class Living extends Entity {
   update(foodGrid) {
     this.steeringTarget = null
     this.updateHunger();
-    this.BT.tick(this, {foodGrid: foodGrid})
+    this.BT.tick(this, {foodGrid: foodGrid, t:getDayTimeFloat()})
     if (this.collisionCooldown > 0) this.collisionCooldown -= worldSpeed;
     this.steer(this.steeringTarget);
     this.move();

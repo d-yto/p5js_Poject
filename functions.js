@@ -482,11 +482,9 @@ function findNearestJobInteract(i) {
   return nearest;
 }
 
-function getDayPhase(){
-  let t = dayLength/dayTime
-  if (t<PHASE_DAY_START) return 'day';
-  if (t<PHASE_EVENING_START) return 'evening';
-  return 'night';
+function getDayTimeFloat(){
+  return dayTime / dayLength
+  
 }
 
 function makeWorkerTree(jobSubTree){
@@ -498,7 +496,7 @@ function makeWorkerTree(jobSubTree){
           actions.depositStorage
       ]),
 
-      sequences.workerJobSequence,
+      jobSubTree,
 
       actions.wander
     ])    

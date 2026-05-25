@@ -61,6 +61,19 @@ class Action extends NodeBase {
   }
 }
 
+class DuringPhase extends NodeBase {
+    constructor(start, end, child){
+        super()
+        this.start = start
+        this.end = end
+        this.child = child
+    }
+    tick(e,ctx){
+        if(ctx.t < this.start || ctx.t >= this.end) return BT.FAILURE
+        return this.child.tick(e,ctx)
+    }
+}
+
 const actions = {
   wander: new Action((e, ctx) => {
     let n = e.sampleNoise();
@@ -101,11 +114,11 @@ const actions = {
       y: e.targetFoodPile.y + e.targetFoodPile.height / 2,
     };
     let seek = e.seekPoint(pileCenter, 60);
+    e.steeringTarget = seek;
     if (seek.dist < 15) {
       e.eatFromPile(e.targetFoodPile);
       return BT.SUCCESS;
     }
-    e.steeringTarget = seek;
     return BT.RUNNING;
   }),
   seekPartner: new Action((e, ctx) => {
@@ -131,6 +144,7 @@ const actions = {
       y: e.targetStockPile.y + e.targetStockPile.height / 2,
     };
     let seek = e.seekPoint(pileCenter, 60);
+    e.steeringTarget = seek;
     if (seek.dist < 20) {
       while (
         e.storage.length > 0 &&
@@ -174,6 +188,7 @@ const actions = {
         e.jobState = "idle";
         e.jobTarget = null;
         e.workTimer = 60;
+        e.jobSearchCooldown = 0;
 
         return BT.SUCCESS;
     }
@@ -186,6 +201,7 @@ const conditions = {
   isHungry: new Condition((e, ctx) => {
     return e.hunger < e.maxHunger * 0.25;
   }),
+  wantsToEat:  new Condition((e, ctx) => e.hunger < e.maxHunger * 0.85),
   canReproduce: new Condition((e, ctx) => {
     return e.partner && e.hunger >= e.maxHunger * 0.5;
   }),
@@ -211,16 +227,26 @@ const sequences = {
         actions.jobSearch
     ]),
     actions.doJob
-  ])
+  ]),
+  
 };
 const selectors = {};
+
+
 const BTrees = {
   childTree: new Selector([sequences.ifHungryEat, actions.wander]),
   adultTree: new Selector([
     sequences.ifHungryEat,
-    sequences.reproduce,
-    actions.wander,
+    new DuringPhase(0.0, 0.6, new Selector([
+        new Sequence([
+            conditions.wantsToEat,
+
+            actions.wander
+        ]),
+    ])),
+
   ]),
+
 };
 
 const jobSubTrees = {
