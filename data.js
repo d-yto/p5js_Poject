@@ -555,10 +555,21 @@ class farmland extends RectangularStructure {
     }
   }
   update() {
+    this.updateTasks()
     this.render();
     for (let c of this.crops) c.update();
   }
-  closestPileCheck() {}
+
+  updateTasks(){
+    for (let c of this.crops){
+      if(this.crop.growthStage >= this.crop.harvestStage && !crop.harvestTask){
+        let task = new HarvestTask(this.crop, this)
+        taskManager.add(task)
+      }
+    }
+  }
+
+ 
 }
 
 class StockPile extends RectangularStructure {
@@ -804,6 +815,7 @@ class WorkerAssignUI extends UIWindow {
           s.workers.splice(s.workers.indexOf(e), 1);
           e.job = null;
           e.assignedStructure = null;
+          e.BT = BTrees.adultTree;
         }
       }
     });
@@ -921,3 +933,4 @@ let yearLength = 1
 const PHASE_DAY_START = 0.0
 const PHASE_EVENING_START = 0.6
 const PHASE_NIGHT_START = 0.8
+const taskManager = new TaskManager();

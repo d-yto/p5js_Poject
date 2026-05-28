@@ -90,6 +90,15 @@ function death() {
   /* removes people if they should die */
   let before = data.people.length;
   data.people = data.people.filter((p) => !p.shouldDie());
+  for (let p of data.people) {
+    if (p.shouldDie()) {
+      p.partner = null;
+      p.jobTarget = null;
+      p.assignedStructure = null;
+      p.targetStockPile = null;
+      p.targetFoodPile = null;
+    }
+  }
   deathToll += before - data.people.length;
 
   const alive = new Set(data.people);

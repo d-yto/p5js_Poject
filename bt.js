@@ -134,6 +134,12 @@ const actions = {
   }),
   depositStorage: new Action((e, ctx) => {
     if (
+      e.targetStockPile &&
+      !data.structures.includes(e.targetStockPile)
+    ) {
+      e.targetStockPile = null;
+    }
+    if (
       !e.targetStockPile ||
       e.targetStockPile.currentStorage >= e.targetStockPile.storageMax
     )
@@ -252,3 +258,127 @@ const BTrees = {
 const jobSubTrees = {
   farmer: new Sequence([actions.jobSearch, actions.doJob]),
 };
+
+
+
+
+
+class TaskManager {
+  constructor(){
+    this.tasks = []
+  }
+
+  add(task){
+    this.tasks.push(task)
+  }
+
+  removeFinished() {
+    this.tasks = this.tasks.filter(task =>
+      task.status !== "completed" &&
+      task.status !== "cancelled"
+    );
+  }
+
+  requestTask(worker){
+    let validTasks = this.tasks.filter(task => task.status === "open" && task.isValid())
+    if(validTasks.length === 0) return null;
+    validTasks.sort((a,b) =>{
+
+      if(a.priority !== b.priority) return b.priority - a.priority
+
+      let adx = a.target.x - worker.x
+      let ady = a.target.y - worker.y
+
+      let bdx = b.target.x - worker.x
+      let bdy = b.target.y - worker.y
+
+      return ((adx*adx + ady*ady) - (bdx*bdx + bdy*bdy));
+    }) 
+    let best = validTasks[0]
+    best.reserve(worker)
+    return best
+  }
+}
+
+
+class Task{
+  constructor(config){
+    this.id = crypto.randomUUID()
+    this.type = config.type
+    this.target = config.target
+    this.priority = config.priority ?? 1
+    this.assignedWorker = null
+    this.status = "open"
+
+  }
+  reserve(worker){
+    this.assignedWorker = worker
+    this.status = "reserved"
+  }
+
+  release(){
+    this.assignedWorker = null
+    this.status = "open"
+  }
+  complete(){
+    this.status = "completed"
+  }
+  cancel(){
+    this.status = "cancelled"
+  }
+
+  isValid(){
+    return true;
+  }
+
+  perform(worker){}
+}
+
+class HarvestTask extends Task {
+  constructor(crop, farm){
+    super({
+      type:"harvest",
+      target: crop,
+      priority: 3
+    })
+    this.farm = farm
+  }
+
+  isValid(){
+    return (this.target && this.target.growthStage >= this.target.harvestStage)
+  }
+
+  perform(worker){
+    worker.storage.push({
+      resource: this.target.resource,
+      amount: this.target.harvestAmount
+
+    })
+    this.growthStage = 0;
+    this.complete()
+  }
+}
+
+class WaterTask extends Task {
+  constructor(crop, farm){
+    super({
+      type:"Water",
+      target: crop,
+      priority: 3
+    })
+    this.farm = farm
+  }
+
+  isValid(){
+    return (this.target && this.growthStage >= this.harvestStage)
+  }
+
+  perform(worker){
+    this.target.watered = true
+
+    this.target.waterResetTime = 400
+
+    this.complete()
+
+  }
+}
