@@ -131,38 +131,7 @@ let names = [
   `Gilbert`,
   `Fannie`,
 ];
-let jobBehaviours = {
-  farmer: {
-    requirement: (item) =>
-      item instanceof FarmCrop &&
-      (item.watered === false || item.growthStage >= item.harvestStage),
-    findTarget: (entity) => findNearestJobInteract(entity),
-    onWorkComplete: (entity, target) => {
-      if (target.growthStage >= target.harvestStage) {
-        entity.storage.push({
-          resource: target.resource,
-          amount: target.harvestAmount,
-        });
-        target.growthStage = 0;
-      } else {
-        target.growthStage++;
-      }
-      target.wateredResetTime = 400;
-      target.watered = true;
-    },
-  },
-  lumberjack: {
-    requirement: (item) =>
-      item.type === "tree" || item.growthStage >= item.harvestStage,
-    onWorkComplete: (entity, target) => {
-      target.hp--;
-      if (target.growthStage >= target.harvestStage) {
-        entity.storage.push(target.resource * target.harvestAmount);
-        target.toRemove = true;
-      }
-    },
-  },
-};
+
 //entity classes
 class Entity {
   constructor(config) {
@@ -561,9 +530,10 @@ class farmland extends RectangularStructure {
   }
 
   updateTasks(){
-    for (let c of this.crops){
-      if(this.crop.growthStage >= this.crop.harvestStage && !crop.harvestTask){
-        let task = new HarvestTask(this.crop, this)
+    for (let crop of this.crops){
+      if (crop.growthStage >= crop.harvestStage && !crop.harvestTask){
+        let task = new HarvestTask(crop, this)
+        crop.harvestTask = task
         taskManager.add(task)
       }
     }

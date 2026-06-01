@@ -201,6 +201,30 @@ const actions = {
 
     return BT.RUNNING;
   }),
+
+  requestTask: new Action((e,ctx) => {
+    if (e.currentTask) return BT.SUCCESS
+    let task = taskManager.requestTask(e)
+    if (!task) return BT.FAILURE
+
+    e.currentTask = task
+    return BT.SUCCESS
+  }),
+  preformTask: new Action((e,ctx) => {
+    let task = e.currentTask
+    if (!task) return BT.FAILURE
+    if (!task.isValid()){
+      task.cancel();
+      e.currentTask = null 
+      return BT.FAILURE
+    }
+    let seek = e.seekPoint(task.target,60);
+    e.steeringTarget = seek
+    if (seek.dist > 12)return BT.RUNNING
+
+    task.perform(e)
+    return BT.SUCCESS
+  })
 };
 
 const conditions = {
@@ -219,6 +243,9 @@ const conditions = {
     if (!e.jobTarget) return false;
     return true;
   }),
+  hasTask: new Condition((e,ctx) => {
+    return e.currentTask != null
+  }) 
 };
 
 const sequences = {
@@ -227,14 +254,6 @@ const sequences = {
     new Selector([actions.seekPileFood, actions.seekWildFood]),
   ]),
   reproduce: new Sequence([conditions.canReproduce, actions.seekPartner]),
-  workerJobSequence: new Sequence([
-    new Selector([
-        conditions.canDoJob,
-        actions.jobSearch
-    ]),
-    actions.doJob
-  ]),
-  
 };
 const selectors = {};
 
@@ -252,6 +271,23 @@ const BTrees = {
     ])),
 
   ]),
+  workerTree: new Selector([
+    sequences.ifHungryEat,
+
+    new Sequence([
+      conditions.hasStorage,
+      actions.depositStorage,
+    ]),
+
+    new Sequence([
+      new Selector([
+        conditions.hasTask,
+        actions.requestTask,
+      ]),
+      actions.preformTask
+    ]),
+    actions.wander
+  ]),
 
 };
 
@@ -267,18 +303,15 @@ class TaskManager {
   constructor(){
     this.tasks = []
   }
-
   add(task){
     this.tasks.push(task)
   }
-
   removeFinished() {
     this.tasks = this.tasks.filter(task =>
       task.status !== "completed" &&
       task.status !== "cancelled"
     );
   }
-
   requestTask(worker){
     let validTasks = this.tasks.filter(task => task.status === "open" && task.isValid())
     if(validTasks.length === 0) return null;
@@ -315,7 +348,6 @@ class Task{
     this.assignedWorker = worker
     this.status = "reserved"
   }
-
   release(){
     this.assignedWorker = null
     this.status = "open"
@@ -326,11 +358,9 @@ class Task{
   cancel(){
     this.status = "cancelled"
   }
-
   isValid(){
     return true;
   }
-
   perform(worker){}
 }
 
@@ -339,22 +369,20 @@ class HarvestTask extends Task {
     super({
       type:"harvest",
       target: crop,
-      priority: 3
+      priority: 5
     })
     this.farm = farm
   }
-
   isValid(){
     return (this.target && this.target.growthStage >= this.target.harvestStage)
   }
-
   perform(worker){
     worker.storage.push({
       resource: this.target.resource,
       amount: this.target.harvestAmount
-
     })
-    this.growthStage = 0;
+    this.target.growthStage = 0;
+    this.target.HarvestTask = null
     this.complete()
   }
 }
@@ -368,11 +396,9 @@ class WaterTask extends Task {
     })
     this.farm = farm
   }
-
   isValid(){
-    return (this.target && this.growthStage >= this.harvestStage)
+    return (this.target && !this.target.watered)
   }
-
   perform(worker){
     this.target.watered = true
 
