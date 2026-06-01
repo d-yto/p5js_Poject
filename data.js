@@ -780,7 +780,7 @@ class WorkerAssignUI extends UIWindow {
           s.workers.push(e);
           e.job = s.job;
           e.assignedStructure = s; 
-          e.BT = makeWorkerTree(jobSubTrees[s.job])
+          e.BT = BTrees.workerTree
         } else if (s.workers.includes(e)) {
           s.workers.splice(s.workers.indexOf(e), 1);
           e.job = null;

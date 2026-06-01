@@ -269,7 +269,7 @@ const BTrees = {
             actions.wander
         ]),
     ])),
-
+  actions.wander
   ]),
   workerTree: new Selector([
     sequences.ifHungryEat,
@@ -291,9 +291,6 @@ const BTrees = {
 
 };
 
-const jobSubTrees = {
-  farmer: new Sequence([actions.jobSearch, actions.doJob]),
-};
 
 
 
@@ -313,7 +310,7 @@ class TaskManager {
     );
   }
   requestTask(worker){
-    let validTasks = this.tasks.filter(task => task.status === "open" && task.isValid())
+    let validTasks = this.tasks.filter(task => task.status === "open" && task.isValid()&& task.requiredJob === null || task.requiredJob === worker.job && requiredStructure === worker.assignedStructure)
     if(validTasks.length === 0) return null;
     validTasks.sort((a,b) =>{
 
@@ -369,7 +366,9 @@ class HarvestTask extends Task {
     super({
       type:"harvest",
       target: crop,
-      priority: 5
+      priority: 5,
+      requiredJob: "farmer",
+      requiredStructure: farm
     })
     this.farm = farm
   }
