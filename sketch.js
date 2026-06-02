@@ -13,6 +13,7 @@ function setup() {
 function draw() {
   taskManager.removeFinished()
   background(51);
+  
   unemployed = data.people.filter((c) => c.type === "adult" && c.job === null);
   push();
   translate(-camX, -camY);

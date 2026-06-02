@@ -237,6 +237,7 @@ class Living extends Entity {
 
   steer(target) {
     //updates direction vector
+    if (!target) return;
     let strength =
       this.hunger < this.maxHunger * 0.9
         ? 0.12 * worldSpeed
@@ -317,7 +318,7 @@ class Living extends Entity {
       }
     }
     return nearest;
-    }
+  }
   
   eatFromPile(pile) {
     let idx = pile.items.findIndex(item => stats[item.resource]?.hunger > 0);
@@ -357,7 +358,8 @@ class Adult extends Living {
     this.targetStockPile = null;
     this.targetFoodPile = null;
     this.foodPileSearchCooldown = 0;
-    this.BT = BTrees.adultTree
+    this.BT = BTrees.adultTree;
+    this.currentTask = null
   }
 
   get canReproduce() {
@@ -369,13 +371,13 @@ class Adult extends Living {
     let dy = t.y - this.y;
     let dist = sqrt(dx * dx + dy * dy);
     if (dist === 0) return { x: 0, y: 0, dist: 0 };
-    let speed = dist < slowingRadius ? dist / slowingRadius : 1;
-    this.targetVel = this.baseVel;
+    let speed = dist < slowingRadius? dist / slowingRadius: 1;
+    this.targetVel = this.baseVel * speed;
 
     let br = this.boundaryRepulsion();
     return {
-      x: (dx / dist) * speed + br.x,
-      y: (dy / dist) * speed + br.y,
+      x: dx / dist + br.x,
+      y: dy / dist + br.y,
       dist: dist,
     };
   }
@@ -531,11 +533,25 @@ class farmland extends RectangularStructure {
 
   updateTasks(){
     for (let crop of this.crops){
-      if (crop.growthStage >= crop.harvestStage && !crop.harvestTask){
-        let task = new HarvestTask(crop, this)
-        crop.harvestTask = task
-        taskManager.add(task)
+  
+      if (crop.growthStage >= crop.harvestStage){
+  
+        if (!(crop.task instanceof HarvestTask)){
+          let task = new HarvestTask(crop, this)
+          crop.task = task
+          taskManager.add(task)
+        }
+  
+      } else if (!crop.watered){
+  
+        if (!(crop.task instanceof WaterTask)){
+          let task = new WaterTask(crop, this)
+          crop.task = task
+          taskManager.add(task)
+        }
+  
       }
+  
     }
   }
 
@@ -632,6 +648,7 @@ class FarmCrop extends Entity {
     this.baseColor = [...this.color];
     this.dryColor = [...structureConfigs.farm[this.type].dryColor];
     this.readyColor = [...structureConfigs.farm[this.type].readyColor];
+    this.task = null
   }
 
   render() {
@@ -647,6 +664,13 @@ class FarmCrop extends Entity {
 
     fill(finalColor);
     circle(this.x, this.y, size);
+
+    if (this.task){
+      stroke(255,0,0);
+      noFill();
+      circle(this.x,this.y,20);
+      noStroke();
+  }
   }
 
   update() {
@@ -782,6 +806,12 @@ class WorkerAssignUI extends UIWindow {
           e.assignedStructure = s; 
           e.BT = BTrees.workerTree
         } else if (s.workers.includes(e)) {
+
+          if(e.currentTask){
+            e.currentTask.release();
+            e.currentTask = null
+          }
+
           s.workers.splice(s.workers.indexOf(e), 1);
           e.job = null;
           e.assignedStructure = null;

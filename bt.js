@@ -164,43 +164,6 @@ const actions = {
       return BT.RUNNING;
     }
   }),
-  jobSearch: new Action((e, ctx) => {
-    if (e.jobSearchCooldown <= 0) {
-        findNearestJobInteract(e);
-        e.jobSearchCooldown = 30;
-    } else {
-        e.jobSearchCooldown -= worldSpeed;
-    }
-
-    return e.jobTarget
-        ? BT.SUCCESS
-        : BT.FAILURE;
-  }),
-  doJob: new Action((e, ctx) => {
-    if (!e.jobTarget) return BT.FAILURE;
-    let seek = e.seekPoint(e.jobTarget,60);
-
-    e.steeringTarget = seek;
-
-    if (seek.dist > 12) return BT.RUNNING;
-
-    e.jobState = "working";
-    e.targetVel = 0;
-
-    e.workTimer -= worldSpeed;
-
-    if (e.workTimer <= 0) {
-        jobBehaviours[e.job].onWorkComplete(e,e.jobTarget);
-        e.jobState = "idle";
-        e.jobTarget = null;
-        e.workTimer = 60;
-        e.jobSearchCooldown = 0;
-
-        return BT.SUCCESS;
-    }
-
-    return BT.RUNNING;
-  }),
 
   requestTask: new Action((e,ctx) => {
     if (e.currentTask) return BT.SUCCESS
@@ -222,9 +185,17 @@ const actions = {
     e.steeringTarget = seek
     if (seek.dist > 12)return BT.RUNNING
 
+    e.workTimer++
+
+    if (e.workTimer < task.workDuration){
+      return BT.RUNNING
+    }
+
     task.perform(e)
+    e.workTimer = 0
+    e.currentTask = null
     return BT.SUCCESS
-  })
+      })
 };
 
 const conditions = {
@@ -310,12 +281,20 @@ class TaskManager {
     );
   }
   requestTask(worker){
-    let validTasks = this.tasks.filter(task => task.status === "open" && task.isValid()&& task.requiredJob === null || task.requiredJob === worker.job && requiredStructure === worker.assignedStructure)
+    let validTasks = this.tasks.filter(task => 
+      task.status === "open" &&
+      task.isValid() &&
+      (task.requiredJob === null ||
+      (task.requiredJob === worker.job &&
+      task.requiredStructure === worker.assignedStructure)))
+
     if(validTasks.length === 0) return null;
+
     validTasks.sort((a,b) =>{
 
       if(a.priority !== b.priority) return b.priority - a.priority
 
+      if (!a.target || !b.target) return 0
       let adx = a.target.x - worker.x
       let ady = a.target.y - worker.y
 
@@ -339,6 +318,9 @@ class Task{
     this.priority = config.priority ?? 1
     this.assignedWorker = null
     this.status = "open"
+    this.requiredStructure = config.requiredStructure ?? null
+    this.requiredJob = config.requiredJob ?? null
+    this.workDuration = config.workDuration ?? 60
 
   }
   reserve(worker){
@@ -354,6 +336,10 @@ class Task{
   }
   cancel(){
     this.status = "cancelled"
+
+    if (this.target && this.target.task === this){
+      this.target.task = null
+    }
   }
   isValid(){
     return true;
@@ -368,7 +354,8 @@ class HarvestTask extends Task {
       target: crop,
       priority: 5,
       requiredJob: "farmer",
-      requiredStructure: farm
+      requiredStructure: farm,
+      workDuration: 90
     })
     this.farm = farm
   }
@@ -378,10 +365,10 @@ class HarvestTask extends Task {
   perform(worker){
     worker.storage.push({
       resource: this.target.resource,
-      amount: this.target.harvestAmount
+      amount: this.target.harvestAmount,
     })
     this.target.growthStage = 0;
-    this.target.HarvestTask = null
+    this.target.task = null
     this.complete()
   }
 }
@@ -391,7 +378,10 @@ class WaterTask extends Task {
     super({
       type:"Water",
       target: crop,
-      priority: 3
+      priority: 3,
+      requiredJob: "farmer",
+      requiredStructure: farm,
+      workDuration:50
     })
     this.farm = farm
   }
@@ -400,10 +390,11 @@ class WaterTask extends Task {
   }
   perform(worker){
     this.target.watered = true
-
-    this.target.waterResetTime = 400
-
+    this.target.growthStage++
+    this.target.wateredResetTime = 400
+    this.target.task = null
     this.complete()
+
 
   }
 }

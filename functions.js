@@ -88,25 +88,32 @@ function birth(i, e) {
 }
 function death() {
   /* removes people if they should die */
-  for (let p of data.people) {
-    if (p.shouldDie()) {
+  let alive = new Set(data.people.filter(p => !p.shouldDie()))
+
+  for (let p of data.people){
+    if (!alive.has(p)){
       p.partner = null;
       p.jobTarget = null;
       p.assignedStructure = null;
       p.targetStockPile = null;
       p.targetFoodPile = null;
+    }else{
+      if (p.partner && !alive.has(p.partner)){
+        p.partner = null
+      }
     }
   }
+  
   for (let task of taskManager.tasks){
     if(task.assignedWorker && !alive.has(task.assignedWorker)){
       task.release();
     }
   }
-  let before = data.people.length;
-  data.people = data.people.filter((p) => !p.shouldDie());
-  deathToll += before - data.people.length;
 
-  const alive = new Set(data.people);
+  let before = data.people.length;
+  data.people = Array.from(alive);
+  deathToll += before - data.people.length;
+  
   for (let s of data.structures) {
     if (!s.workers) continue;
     s.workers = s.workers.filter(e => alive.has(e));
