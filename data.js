@@ -328,6 +328,9 @@ class Living extends Entity {
     let hungerValue = stats[item.resource].hunger;
     this.hunger = min(this.hunger + hungerValue, this.maxHunger);
     this.targetFoodPile = null; 
+    console.log(
+      `${this.name} ate ${item.resource} from stockpile`
+    );
   }
 
   update(foodGrid) {
@@ -665,12 +668,6 @@ class FarmCrop extends Entity {
     fill(finalColor);
     circle(this.x, this.y, size);
 
-    if (this.task){
-      stroke(255,0,0);
-      noFill();
-      circle(this.x,this.y,20);
-      noStroke();
-  }
   }
 
   update() {

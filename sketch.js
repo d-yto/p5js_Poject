@@ -14,6 +14,13 @@ function draw() {
   taskManager.removeFinished()
   background(51);
   
+ 
+
+
+
+
+
+
   unemployed = data.people.filter((c) => c.type === "adult" && c.job === null);
   push();
   translate(-camX, -camY);
@@ -54,6 +61,37 @@ function draw() {
 
   pop();
 
+  let t = getDayTimeFloat()
+  
+
+  let noonLight  = color(255, 255, 255, 0);
+  let sunsetLight = color(240, 110, 50, 75);
+  let sunriseLight= color(255, 170, 90, 70);
+  let nightLight = color(15, 25, 80, 120);
+  let overlayColor;
+  
+  if (t < 0.25) {
+    let amt = map(t, 0.0, 0.25, 0, 1);
+    overlayColor = lerpColor(sunriseLight, noonLight, amt);
+  } else if (t < 0.50) {
+    let amt = map(t, 0.25, 0.50, 0, 1);
+    overlayColor = lerpColor(noonLight, sunsetLight, amt);
+  } else if (t < 0.75) {
+    let amt = map(t, 0.50, 0.75, 0, 1);
+    overlayColor = lerpColor(sunsetLight, nightLight, amt);
+  } else {
+    let amt = map(t, 0.75, 1.00, 0, 1);
+    overlayColor = lerpColor(nightLight, sunriseLight, amt);
+  }
+
+  blendMode(SOFT_LIGHT)
+  fill(overlayColor)
+  noStroke()
+  rect(0,0,winWidth,winHeight)
+  blendMode(BLEND)
+
+
+
   if (data.activeUI) {
     data.activeUI.render();
   }
@@ -78,8 +116,11 @@ function draw() {
     noStroke();
     // Render at screen coordinates
     rect(snappedX - camX, snappedY - camY, config.width, config.height);
+
+    
     pop();
   }
+  
   fill(130, 120, 62);
   rect(0, winHeight, 100, buttonheight);
 
