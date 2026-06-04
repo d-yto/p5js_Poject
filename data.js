@@ -343,6 +343,55 @@ class Living extends Entity {
     this.render();
     if (healthbar) hungerBar(this);
   }
+  findBestFoodOption(){
+    let best = null;
+    let bestScore = -Infinity;
+
+    // evaluate stockpiles
+    for(let pile of data.structures){
+
+        if(!(pile instanceof StockPile)) continue;
+        let foodItem = pile.items.find(item => stats[item.resource]?.hunger > 0);
+        if(!foodItem) continue;
+        let score = this.scoreFoodSource(pile, stats[foodItem.resource].hunger);
+        
+        if(score > bestScore){
+            bestScore = score;
+            best = {
+                type: "pile",
+                target: pile,
+                score: score
+            };
+        }
+    }
+
+    // evaluate wild food
+    for(let food of data.foods){
+
+        let score = this.scoreFoodSource(food, food.hunger);
+
+        if(score > bestScore){
+            bestScore = score;
+            best = {
+                type: "wild",
+                target: food,
+                score: score
+            };
+        }
+    }
+
+    return best;
+  }
+  scoreFoodSource(target, hungerValue){
+    let dx =  target.x - this.x
+    let dy =  target.y - this.y
+    let dist = sqrt(dx*dx + dy*dy)
+    let hungerNeed = (1 - this.hunger / this.maxHunger)
+    let tcost = dist*0.05
+
+    return(hungerValue*20 + hungerNeed*100 - tcost)
+
+  }
 }
 
 class Adult extends Living {

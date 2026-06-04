@@ -15,32 +15,25 @@ class TaskManager {
       let validTasks = this.tasks.filter(task => 
         task.status === "open" &&
         task.isValid() &&
-        (task.requiredJob === null ||
-        (task.requiredJob === worker.job &&
-        task.requiredStructure === worker.assignedStructure)))
-  
+        canBeTakenByWorker(worker))
+
       if(validTasks.length === 0) return null;
   
-      validTasks.sort((a,b) =>{
-  
-        if(a.priority !== b.priority) return b.priority - a.priority
-  
-        if (!a.target || !b.target) return 0
-        let adx = a.target.x - worker.x
-        let ady = a.target.y - worker.y
-  
-        let bdx = b.target.x - worker.x
-        let bdy = b.target.y - worker.y
-  
-        return ((adx*adx + ady*ady) - (bdx*bdx + bdy*bdy));
-      }) 
-      let best = validTasks[0]
-      best.reserve(worker)
-      return best
-    }
+      validTasks.sort((a, b) => {
+        const priorityDiff = b.getPriority(worker) - a.getPriority(worker);
+        if (priorityDiff !== 0) return priorityDiff;
+        return this._distanceSq(a.target, worker) - this._distanceSq(b.target, worker);
+      })
+    };
+    _distanceSq(target, worker){
+      if (!target) return Infinity;
+      const dx = target.x - worker.x;
+      const dy = target.y - worker.y;
+      return dx * dx + dy * dy;
+    };
   }
   
-  
+  //base task node
   class Task{
     constructor(config){
       this.id = crypto.randomUUID()
@@ -76,8 +69,21 @@ class TaskManager {
       return true;
     }
     perform(worker){}
+    canBeTakenByWorker(worker){
+      if (this.requiredJob && this.requiredJob !== worker.job) return false;
+      if (this.requiredStructure && this.requiredStructure 
+        !== worker.assignedStructure) return false;
+      return true;
+    }
+    getPriority(worker){
+      return typeof this.priority === "number"
+      ? this.priority
+      : this.priority.getScore(worker);
+    }
   }
   
+
+  //world tasks
   class HarvestTask extends Task {
     constructor(crop, farm){
       super({
@@ -130,15 +136,70 @@ class TaskManager {
     }
   }
 
-  class EatTask extends Task{
-    constructor(worker){
-        super({
-            type:"eat",
-            priority:10
-        })
-        this.worker = worker
+
+  //need tasks
+  class EatTask extends Task {
+    constructor(foodOption, worker) {
+      super({
+        type: "eat",
+        target: foodOption.target,
+        priority: new HungerNeed(worker),
+        workDuration: 20,
+      });
+      this.sourceType = foodOption.type;
     }
-    isValid(){
-        return this.worker.hunger < this.worker.maxHunger * 0.25
+    isValid() {
+      if (!this.target) return false;
+  
+      if (this.sourceType === "wild") {
+        return data.foods.includes(this.target);
+      }
+  
+      if (this.sourceType === "pile") {
+        return (
+          data.structures.includes(this.target) &&
+          this.target.items.some((item) => stats[item.resource]?.hunger > 0)
+        );
+      }
+  
+      return false;
     }
+    perform(worker) {
+      if (this.sourceType === "wild") {
+        const index = data.foods.indexOf(this.target);
+        if (index !== -1) {
+          const food = data.foods.splice(index, 1)[0];
+          worker.hunger = min(worker.hunger + food.hunger, worker.maxHunger);
+        }
+      } else if (this.sourceType === "pile") {
+        const idx = this.target.items.findIndex(
+          (item) => stats[item.resource]?.hunger > 0,
+        );
+        if (idx !== -1) {
+          const item = this.target.items.splice(idx, 1)[0];
+          worker.hunger = min(worker.hunger + stats[item.resource].hunger, worker.maxHunger);
+        }
+      }
+  
+      this.complete();
+    }
+  }
+
+  class Need {
+    getScore(worker){
+      return 0;
+    }
+    getTask(worker){
+      return null
+    }
+  }
+
+
+
+  class HungerNeed extends Need{
+    getTask(worker) {
+    const foodOption = worker.findBestFoodOption();
+    if (!foodOption) return null;
+    return new EatTask(foodOption, worker);
+  }
   }

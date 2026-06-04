@@ -93,34 +93,6 @@ const actions = {
     e.targetVel = e.baseVel * 0.6;
     return BT.RUNNING;
   }),
-  seekWildFood: new Action((e, ctx) => {
-    let target = e.targetFood(ctx.foodGrid);
-    if (!target) return BT.FAILURE;
-    let r = 80;
-    let s = target.len < r ? e.vel * (target.len / r) : e.vel;
-    e.steeringTarget = { x: target.x * s * 0.85, y: target.y * s * 0.85 };
-    return BT.RUNNING;
-  }),
-  seekPileFood: new Action((e, ctx) => {
-    if (!e.targetFoodPile && e.foodPileSearchCooldown <= 0) {
-      e.targetFoodPile = e.findEatablePile();
-      e.foodPileSearchCooldown = 60;
-    } else {
-      e.foodPileSearchCooldown--;
-    }
-    if (!e.targetFoodPile) return BT.FAILURE;
-    let pileCenter = {
-      x: e.targetFoodPile.x + e.targetFoodPile.width / 2,
-      y: e.targetFoodPile.y + e.targetFoodPile.height / 2,
-    };
-    let seek = e.seekPoint(pileCenter, 60);
-    e.steeringTarget = seek;
-    if (seek.dist < 15) {
-      e.eatFromPile(e.targetFoodPile);
-      return BT.SUCCESS;
-    }
-    return BT.RUNNING;
-  }),
   seekPartner: new Action((e, ctx) => {
     let p = e.partner;
     if (!p) return BT.FAILURE;
@@ -199,10 +171,6 @@ const actions = {
 };
 
 const conditions = {
-  isHungry: new Condition((e, ctx) => {
-    return e.hunger < e.maxHunger * 0.25;
-  }),
-  wantsToEat:  new Condition((e, ctx) => e.hunger < e.maxHunger * 0.85),
   canReproduce: new Condition((e, ctx) => {
     return e.partner && e.hunger >= e.maxHunger * 0.5;
   }),
@@ -220,15 +188,7 @@ const conditions = {
 };
 
 const sequences = {
-  ifHungryEat: new Sequence([
-    conditions.isHungry,
-    new Selector([actions.seekPileFood, actions.seekWildFood]),
-  ]),
   reproduce: new Sequence([conditions.canReproduce, actions.seekPartner]),
-  wantsToEat: new Sequence([
-    conditions.wantsToEat,
-    new Selector([actions.seekWildFood,actions.seekPileFood])
-  ])
 };
 const selectors = {};
 
