@@ -30,7 +30,14 @@ function draw() {
     rotUpdate();
   }
   if (frameCount % (40 / worldSpeed) === 0) {
-    for (let i = 0; i < 4; i++) data.foods.push(new Carrot(stats.carrot));
+    for (let i = 0; i < 4; i++) {const carrot = new Carrot(stats.carrot);
+
+      data.foods.push(carrot);
+      
+      const task = new EatTask(carrot);
+      carrot.task = task;
+      
+      taskManager.add(task)}
   }
 
   dayTime += worldSpeed;

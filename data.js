@@ -392,6 +392,21 @@ class Living extends Entity {
     return(hungerValue*20 + hungerNeed*100 - tcost)
 
   }
+  seekPoint(t, slowingRadius) {
+    let dx = t.x - this.x;
+    let dy = t.y - this.y;
+    let dist = sqrt(dx * dx + dy * dy);
+    if (dist === 0) return { x: 0, y: 0, dist: 0 };
+    let speed = dist < slowingRadius? dist / slowingRadius: 1;
+    this.targetVel = this.baseVel * speed;
+
+    let br = this.boundaryRepulsion();
+    return {
+      x: dx / dist + br.x,
+      y: dy / dist + br.y,
+      dist: dist,
+    };
+  }
 }
 
 class Adult extends Living {
@@ -418,21 +433,7 @@ class Adult extends Living {
     return this.repRate <= 0 && this.partner === null && this.job === null;
   }
 
-  seekPoint(t, slowingRadius) {
-    let dx = t.x - this.x;
-    let dy = t.y - this.y;
-    let dist = sqrt(dx * dx + dy * dy);
-    if (dist === 0) return { x: 0, y: 0, dist: 0 };
-    let speed = dist < slowingRadius? dist / slowingRadius: 1;
-    this.targetVel = this.baseVel * speed;
-
-    let br = this.boundaryRepulsion();
-    return {
-      x: dx / dist + br.x,
-      y: dy / dist + br.y,
-      dist: dist,
-    };
-  }
+  
 
   pileCheck() {
     let nearest = null;

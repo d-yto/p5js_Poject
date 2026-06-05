@@ -16,23 +16,13 @@ class TaskManager {
 
       // 1. Open world tasks
       for (const task of this.tasks) {
-        if (!task.status === "open") continue;
+        if (task.status !== "open") continue;
         if (!task.isValid()) continue;
         if (!task.canBeTakenByWorker(worker)) continue;
 
         candidates.push({
           task,
           score: task.getPriority(worker),
-        });
-      }
-
-      // 2. Need-driven tasks (hunger, etc.)
-      const hungerNeed = new HungerNeed();
-      const hungerTask = hungerNeed.getTask(worker);
-      if (hungerTask && hungerTask.isValid()) {
-        candidates.push({
-          task: hungerTask,
-          score: hungerNeed.getScore(worker),
         });
       }
 
@@ -106,7 +96,6 @@ class TaskManager {
   }
   
 
-  //world tasks
   class HarvestTask extends Task {
     constructor(crop, farm){
       super({
@@ -159,74 +148,49 @@ class TaskManager {
     }
   }
 
-
-  //need tasks
   class EatTask extends Task {
-    constructor(foodOption, worker) {
+    constructor(food) {
       super({
         type: "eat",
-        target: foodOption.target,
-        priority: new HungerNeed(worker),
-        workDuration: 20,
+        target: food,
       });
-      this.sourceType = foodOption.type;
     }
     isValid() {
-      if (!this.target) return false;
-  
-      if (this.sourceType === "wild") {
-        return data.foods.includes(this.target);
-      }
-  
-      if (this.sourceType === "pile") {
-        return (
-          data.structures.includes(this.target) &&
-          this.target.items.some((item) => stats[item.resource]?.hunger > 0)
-        );
-      }
-  
-      return false;
+      return data.foods.includes(this.target);
     }
+    getPriority(worker) {
+      const hungerNeed =
+          1 - worker.hunger / worker.maxHunger;
+  
+      let dx = this.target.x - worker.x;
+      let dy = this.target.y - worker.y;
+  
+      let dist = sqrt(dx * dx + dy * dy);
+  
+      return hungerNeed * 100 - dist * 0.05;
+  }
     perform(worker) {
-      if (this.sourceType === "wild") {
-        const index = data.foods.indexOf(this.target);
-        if (index !== -1) {
-          const food = data.foods.splice(index, 1)[0];
-          worker.hunger = min(worker.hunger + food.hunger, worker.maxHunger);
-        }
-      } else if (this.sourceType === "pile") {
-        const idx = this.target.items.findIndex(
-          (item) => stats[item.resource]?.hunger > 0,
-        );
-        if (idx !== -1) {
-          const item = this.target.items.splice(idx, 1)[0];
-          worker.hunger = min(worker.hunger + stats[item.resource].hunger, worker.maxHunger);
-        }
+      const idx = data.foods.indexOf(this.target);
+
+      if (idx !== -1) {
+          const food = data.foods.splice(idx, 1)[0];
+
+          worker.hunger =
+              min(worker.hunger + food.hunger,
+                  worker.maxHunger);
       }
   
       this.complete();
     }
   }
 
-  class Need {
-    getScore(worker){
-      return 0;
+    class DepositTask extends Task{
+      constructor(worker, structure){
+        super({
+          type:"deposite",
+          target:structure,
+          priority:4,
+          workDuration:30
+        })
+      }
     }
-    getTask(worker){
-      return null
-    }
-  }
-
-
-
-  class HungerNeed extends Need{
-    getScore(worker) {
-      const foodOption = worker.findBestFoodOption();
-      return foodOption ? foodOption.score : 0;
-    }
-    getTask(worker) {
-    const foodOption = worker.findBestFoodOption();
-    if (!foodOption) return null;
-    return new EatTask(foodOption, worker);
-    }
-  }

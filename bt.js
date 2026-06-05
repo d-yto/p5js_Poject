@@ -90,56 +90,14 @@ const actions = {
     e.targetVel = e.baseVel * 0.6;
     return BT.RUNNING;
   }),
-/*   seekPartner: new Action((e, ctx) => {
-    let p = e.partner;
-    if (!p) return BT.FAILURE;
-    let d = { x: p.x - e.x, y: p.y - e.y };
-    e.steeringTarget = e.seekPoint(p, 60);
-    if (sqrt(d.x * d.x + d.y * d.y) < e.size / 2 + p.size / 2) {
-      birth(e, p);
-      return BT.SUCCESS;
-    }
-    return BT.RUNNING;
-  }),
-  depositStorage: new Action((e, ctx) => {
-    if (
-      e.targetStockPile &&
-      !data.structures.includes(e.targetStockPile)
-    ) {
-      e.targetStockPile = null;
-    }
-    if (
-      !e.targetStockPile ||
-      e.targetStockPile.currentStorage >= e.targetStockPile.storageMax
-    )
-      e.targetStockPile = e.pileCheck();
-    if (!e.targetStockPile) return BT.FAILURE;
-    let pileCenter = {
-      x: e.targetStockPile.x + e.targetStockPile.width / 2,
-      y: e.targetStockPile.y + e.targetStockPile.height / 2,
-    };
-    let seek = e.seekPoint(pileCenter, 60);
-    e.steeringTarget = seek;
-    if (seek.dist < 20) {
-      while (
-        e.storage.length > 0 &&
-        e.targetStockPile.currentStorage < e.targetStockPile.storageMax
-      ) {
-        e.targetStockPile.items.push(e.storage.pop());
-      }
-      return BT.SUCCESS;
-    } else {
-      e.jobState = "depositing";
-      return BT.RUNNING;
-    }
-  }), */
-
-  requestTask: new Action((e, ctx) => {
+  requestTask: new Action((e) => {
     if (e.currentTask) return BT.SUCCESS;
 
-    const task = taskManager.requestTask(e);
+    const task = taskManager.chooseBestTask(e);
+
     if (!task) return BT.FAILURE;
 
+    console.log(e.name, "accepted", task.type);
     e.currentTask = task;
     return BT.SUCCESS;
   }),
@@ -154,6 +112,7 @@ const actions = {
     }
 
     const seek = e.seekPoint(task.target, 20);
+    console.log(e.name, task.type, Math.floor(seek.dist));
     e.steeringTarget = seek;
 
     if (seek.dist > 12) return BT.RUNNING;
@@ -169,35 +128,49 @@ const actions = {
 };
 
 const conditions = {
-  wantsToEat: new Condition((e) => e.hunger < e.maxHunger * 0.9),
   hasTask: new Condition((e) => e.currentTask !== null),
 };
 
 const sequences = {
-  ifHungryEat: new Sequence([
-    conditions.wantsToEat,
-    actions.requestTask,
-  ]),
 };
 const selectors = {};
 
 
 const BTrees = {
-  childTree: new Selector([sequences.wantsToEat,sequences.ifHungryEat, actions.wander]),
+  childTree: new Selector([
+    new Sequence([
+      conditions.hasTask,
+      actions.performTask,
+    ]),
+    new Sequence([
+      actions.requestTask,
+      actions.performTask,
+    ]),
+  
+    actions.wander,
+  ]),
   adultTree: new Selector([
-    sequences.ifHungryEat,
-    new DuringPhase(0.0, 0.6, new Selector([
-        new Sequence([
-            conditions.wantsToEat,
-
-            actions.wander
-        ]),
-    ])),
-  actions.wander
+    new Sequence([
+      conditions.hasTask,
+      actions.performTask,
+    ]),
+    new Sequence([
+      actions.requestTask,
+      actions.performTask,
+    ]),
+  
+    actions.wander,
   ]),
   workerTree: new Selector([
-    new Sequence([conditions.hasTask, actions.performTask]),
-    sequences.ifHungryEat,
+    new Sequence([
+      conditions.hasTask,
+      actions.performTask,
+    ]),
+    new Sequence([
+      actions.requestTask,
+      actions.performTask,
+    ]),
+  
     actions.wander,
   ]),
 
