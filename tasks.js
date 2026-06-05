@@ -11,20 +11,43 @@ class TaskManager {
         task.status !== "cancelled"
       );
     }
-    requestTask(worker){
-      let validTasks = this.tasks.filter(task => 
-        task.status === "open" &&
-        task.isValid() &&
-        canBeTakenByWorker(worker))
+    chooseBestTask(worker) {
+      const candidates = [];
 
-      if(validTasks.length === 0) return null;
-  
-      validTasks.sort((a, b) => {
-        const priorityDiff = b.getPriority(worker) - a.getPriority(worker);
-        if (priorityDiff !== 0) return priorityDiff;
-        return this._distanceSq(a.target, worker) - this._distanceSq(b.target, worker);
-      })
-    };
+      // 1. Open world tasks
+      for (const task of this.tasks) {
+        if (!task.status === "open") continue;
+        if (!task.isValid()) continue;
+        if (!task.canBeTakenByWorker(worker)) continue;
+
+        candidates.push({
+          task,
+          score: task.getPriority(worker),
+        });
+      }
+
+      // 2. Need-driven tasks (hunger, etc.)
+      const hungerNeed = new HungerNeed();
+      const hungerTask = hungerNeed.getTask(worker);
+      if (hungerTask && hungerTask.isValid()) {
+        candidates.push({
+          task: hungerTask,
+          score: hungerNeed.getScore(worker),
+        });
+      }
+
+      if (candidates.length === 0) return null;
+
+      candidates.sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        return this._distanceSq(a.task.target, worker) -
+              this._distanceSq(b.task.target, worker);
+      });
+
+      const best = candidates[0];
+      best.task.reserve(worker);
+      return best.task;
+    }
     _distanceSq(target, worker){
       if (!target) return Infinity;
       const dx = target.x - worker.x;
@@ -197,9 +220,13 @@ class TaskManager {
 
 
   class HungerNeed extends Need{
+    getScore(worker) {
+      const foodOption = worker.findBestFoodOption();
+      return foodOption ? foodOption.score : 0;
+    }
     getTask(worker) {
     const foodOption = worker.findBestFoodOption();
     if (!foodOption) return null;
     return new EatTask(foodOption, worker);
-  }
+    }
   }

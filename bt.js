@@ -78,10 +78,7 @@ const actions = {
   wander: new Action((e, ctx) => {
     let n = e.sampleNoise();
     if (!n){
-        e.steeringTarget = {
-            x:e.direction.x,
-            y:e.direction.y
-        }
+        e.steeringTarget = {x:e.direction.x,y:e.direction.y}
         return BT.RUNNING;
     }
     let br = e.boundaryRepulsion();
@@ -93,7 +90,7 @@ const actions = {
     e.targetVel = e.baseVel * 0.6;
     return BT.RUNNING;
   }),
-  seekPartner: new Action((e, ctx) => {
+/*   seekPartner: new Action((e, ctx) => {
     let p = e.partner;
     if (!p) return BT.FAILURE;
     let d = { x: p.x - e.x, y: p.y - e.y };
@@ -135,60 +132,52 @@ const actions = {
       e.jobState = "depositing";
       return BT.RUNNING;
     }
-  }),
+  }), */
 
-  requestTask: new Action((e,ctx) => {
-    if (e.currentTask) return BT.SUCCESS
-    let task = taskManager.requestTask(e)
-    if (!task) return BT.FAILURE
+  requestTask: new Action((e, ctx) => {
+    if (e.currentTask) return BT.SUCCESS;
 
-    e.currentTask = task
-    return BT.SUCCESS
+    const task = taskManager.requestTask(e);
+    if (!task) return BT.FAILURE;
+
+    e.currentTask = task;
+    return BT.SUCCESS;
   }),
-  preformTask: new Action((e,ctx) => {
-    let task = e.currentTask
-    if (!task) return BT.FAILURE
-    if (!task.isValid()){
+  performTask: new Action((e, ctx) => {
+    const task = e.currentTask;
+    if (!task) return BT.FAILURE;
+
+    if (!task.isValid()) {
       task.cancel();
-      e.currentTask = null 
-      return BT.FAILURE
-    }
-    let seek = e.seekPoint(task.target,20);
-    e.steeringTarget = seek
-    if (seek.dist > 12)return BT.RUNNING
-
-    e.workTimer++
-
-    if (e.workTimer < task.workDuration){
-      return BT.RUNNING
+      e.currentTask = null;
+      return BT.FAILURE;
     }
 
-    task.perform(e)
-    e.workTimer = 0
-    e.currentTask = null
-    return BT.SUCCESS
+    const seek = e.seekPoint(task.target, 20);
+    e.steeringTarget = seek;
+
+    if (seek.dist > 12) return BT.RUNNING;
+
+    e.workTimer++;
+    if (e.workTimer < task.workDuration) return BT.RUNNING;
+
+    task.perform(e);
+    e.workTimer = 0;
+    e.currentTask = null;
+    return BT.SUCCESS;
   }),
 };
 
 const conditions = {
-  canReproduce: new Condition((e, ctx) => {
-    return e.partner && e.hunger >= e.maxHunger * 0.5;
-  }),
-  hasStorage: new Condition((e, ctx) => {
-    return e.storage.length > 0;
-  }),
-  canDoJob: new Condition((e, ctx) => {
-    if (!e.job) return false;
-    if (!e.jobTarget) return false;
-    return true;
-  }),
-  hasTask: new Condition((e,ctx) => {
-    return e.currentTask != null
-  }) 
+  wantsToEat: new Condition((e) => e.hunger < e.maxHunger * 0.9),
+  hasTask: new Condition((e) => e.currentTask !== null),
 };
 
 const sequences = {
-  reproduce: new Sequence([conditions.canReproduce, actions.seekPartner]),
+  ifHungryEat: new Sequence([
+    conditions.wantsToEat,
+    actions.requestTask,
+  ]),
 };
 const selectors = {};
 
@@ -207,21 +196,9 @@ const BTrees = {
   actions.wander
   ]),
   workerTree: new Selector([
+    new Sequence([conditions.hasTask, actions.performTask]),
     sequences.ifHungryEat,
-
-    new Sequence([
-      conditions.hasStorage,
-      actions.depositStorage,
-    ]),
-
-    new Sequence([
-      new Selector([
-        conditions.hasTask,
-        actions.requestTask,
-      ]),
-      actions.preformTask
-    ]),
-    actions.wander
+    actions.wander,
   ]),
 
 };
