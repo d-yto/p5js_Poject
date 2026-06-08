@@ -202,6 +202,7 @@ class TaskManager {
         this.complete();
       }
       canBeTakenByWorker(worker){
+        
         return worker.storage.length > 0;
       }
     }
