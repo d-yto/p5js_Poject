@@ -621,11 +621,19 @@ class StockPile extends RectangularStructure {
   get currentStorage() {
     return this.items.length;
   }
+  updateTasks(){
+    const hasActiveTask = (this.task && this.task.status !== "completed" && this.task.status !=="reserved")
+    if (this.currentStorage < this.storageMax && !hasActiveTask){
+      this.task = new DepositTask(this)
+      taskManager.add(this.task)
 
+    }
+  }
   update() {
     this.render();
-    const rows = 10,
-      cols = 10;
+    this.updateTasks();
+
+    const rows = 10, cols = 10;
     let padX = this.width / (cols + 1);
     let padY = this.height / (rows + 1);
     let row = 1,

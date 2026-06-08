@@ -97,7 +97,7 @@ const actions = {
 
     if (!task) return BT.FAILURE;
 
-    console.log(e.name, "accepted", task.type);
+    // console.log(e.name, "accepted", task.type);
     e.currentTask = task;
     return BT.SUCCESS;
   }),
@@ -108,11 +108,12 @@ const actions = {
     if (!task.isValid()) {
       task.cancel();
       e.currentTask = null;
+      e.workTimer = 0;
       return BT.FAILURE;
     }
 
     const seek = e.seekPoint(task.target, 20);
-    console.log(e.name, task.type, Math.floor(seek.dist));
+    // console.log(e.name, task.type, Math.floor(seek.dist));
     e.steeringTarget = seek;
 
     if (seek.dist > 12) return BT.RUNNING;
@@ -129,6 +130,7 @@ const actions = {
 
 const conditions = {
   hasTask: new Condition((e) => e.currentTask !== null),
+
 };
 
 const sequences = {

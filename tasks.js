@@ -185,12 +185,23 @@ class TaskManager {
   }
 
     class DepositTask extends Task{
-      constructor(worker, structure){
+      constructor(structure){
         super({
-          type:"deposite",
+          type:"deposit",
           target:structure,
-          priority:4,
+          priority:1000,
           workDuration:30
         })
+      }
+      isValid(){
+        return(this.target && this.target.currentStorage < this.target.storageMax);
+      }
+      perform(worker){
+        this.target.items.push(...worker.storage);
+        worker.storage.length = 0;
+        this.complete();
+      }
+      canBeTakenByWorker(worker){
+        return worker.storage.length > 0;
       }
     }
