@@ -2,7 +2,6 @@ let data = {
   people: [],
   foods: [],
   collisions: [],
-  nearestFoods: [],
   infoBars: [],
   structures: [],
   selected: null,
@@ -163,7 +162,6 @@ class Living extends Entity {
     this.noiseOffset = getRandomIntInclusive(1000, 9000);
     this.collisionCooldown = 0;
     this.dead = false;
-    this.nearestFood = null;
     this.age = config.age;
     this.type = config.type;
     this.name = names[floor(random(0, names.length))];
@@ -221,19 +219,7 @@ class Living extends Entity {
     return { x: nx, y: ny, len };
   }
 
-  targetFood(foodGrid) {
-    let target = nearestFood(this, foodGrid);
-    if (target) {
-      let tx = target.x - this.x;
-      let ty = target.y - this.y;
-      let lenSq = tx * tx + ty * ty;
 
-      if (lenSq === 0) return { x: 0, y: 0, len: 0 };
-      let len = sqrt(lenSq);
-      return { x: tx / len, y: ty / len, len: len };
-    }
-    return null;
-  }
 
   steer(target) {
     //updates direction vector
@@ -393,6 +379,9 @@ class Living extends Entity {
 
   }
   seekPoint(t, slowingRadius) {
+    if (t && typeof t.getTaskPoint === "function") {
+      t = t.getTaskPoint(this);
+    }
     let dx = t.x - this.x;
     let dy = t.y - this.y;
     let dist = sqrt(dx * dx + dy * dy);
@@ -541,6 +530,12 @@ class RectangularStructure extends structure {
   update() {
     this.render();
   }
+  getTaskPoint(origin) {
+    return {
+      x: constrain(origin.x, this.x, this.x + this.width),
+      y: constrain(origin.y, this.y, this.y + this.height),
+    };
+  }
 }
 
 class farmland extends RectangularStructure {
@@ -622,11 +617,27 @@ class StockPile extends RectangularStructure {
     return this.items.length;
   }
   updateTasks(){
-    const hasActiveTask = (this.task && this.task.status !== "completed" && this.task.status !=="reserved")
-    if (this.currentStorage < this.storageMax && !hasActiveTask){
-      this.task = new DepositTask(this)
-      taskManager.add(this.task)
+    const hasDepositTask = taskManager.tasks.some(
+      (task) =>
+        task instanceof DepositTask &&
+        task.target === this &&
+        task.status !== "completed" &&
+        task.status !== "cancelled",
+    );
 
+    const hasOpenEatTask = taskManager.tasks.some(
+      (task) =>
+        task instanceof EatTask &&
+        task.target === this &&
+        task.status === "open",
+    );
+
+    if (this.currentStorage > 0 && !hasOpenEatTask) {
+      taskManager.add(new EatTask(this));
+    }
+
+    if (this.currentStorage < this.storageMax && !hasDepositTask) {
+      taskManager.add(new DepositTask(this));
     }
   }
   update() {
@@ -732,7 +743,7 @@ class FarmCrop extends Entity {
     if (this.wateredResetTime === 0) {
       this.watered = false;
     } else {
-      this.wateredResetTime--;
+      this.wateredResetTime-=worldSpeed;
     }
     this.render();
   }
@@ -827,7 +838,7 @@ class WorkerAssignUI extends UIWindow {
   render() {
     this.drawBackground();
     this.drawTitle(
-      `Assign Workers ${data.selected.workers.length}/${data.selected.capacity}`,
+      `Assign Workers ${this.structure.workers.length}/${this.structure.capacity}`,
     );
 
     this.beginClip();

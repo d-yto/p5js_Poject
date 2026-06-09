@@ -93,12 +93,13 @@ const actions = {
   requestTask: new Action((e) => {
     if (e.currentTask) return BT.SUCCESS;
 
-    const task = taskManager.chooseBestTask(e);
+    const task = taskManager.requestTask(e);
 
     if (!task) return BT.FAILURE;
 
     // console.log(e.name, "accepted", task.type);
     e.currentTask = task;
+    e.workTimer = 0
     return BT.SUCCESS;
   }),
   performTask: new Action((e, ctx) => {
@@ -115,10 +116,9 @@ const actions = {
     const seek = e.seekPoint(task.target, 20);
     // console.log(e.name, task.type, Math.floor(seek.dist));
     e.steeringTarget = seek;
-
     if (seek.dist > 12) return BT.RUNNING;
 
-    e.workTimer++;
+    e.workTimer += worldSpeed;
     if (e.workTimer < task.workDuration) return BT.RUNNING;
 
     task.perform(e);

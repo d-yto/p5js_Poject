@@ -11,6 +11,24 @@ class TaskManager {
         task.status !== "cancelled"
       );
     }
+    requestTask(worker) {
+      if (worker.currentTask) return worker.currentTask;
+
+      let task = this.chooseBestTask(worker);
+      if (task) return task;
+    
+      const hungerNeed = 1 - worker.hunger / worker.maxHunger;
+      if (hungerNeed <= 0.2) return null; 
+    
+      const bestFood = worker.findBestFoodOption();
+      if (!bestFood || bestFood.target.task) return null;
+    
+      const foodTask = new EatTask(bestFood.target);
+      bestFood.target.task = foodTask;
+      this.add(foodTask);
+    
+      return this.chooseBestTask(worker);
+    }
     chooseBestTask(worker) {
       const candidates = [];
 
@@ -83,6 +101,7 @@ class TaskManager {
     }
     perform(worker){}
     canBeTakenByWorker(worker){
+      if (this.status != "open") return false
       if (this.requiredJob && this.requiredJob !== worker.job) return false;
       if (this.requiredStructure && this.requiredStructure 
         !== worker.assignedStructure) return false;
@@ -156,53 +175,78 @@ class TaskManager {
       });
     }
     isValid() {
-      return data.foods.includes(this.target);
+      return (
+        (this.target instanceof Food && data.foods.includes(this.target)) ||
+        (this.target instanceof StockPile && this.target.currentStorage > 0)
+      );
     }
+    _distanceTo(worker) {
+      const targetPoint = this.target.getTaskPoint
+        ? this.target.getTaskPoint(worker)
+        : this.target;
+      const dx = targetPoint.x - worker.x;
+      const dy = targetPoint.y - worker.y;
+      return sqrt(dx * dx + dy * dy);
+    }
+  
     getPriority(worker) {
-      const hungerNeed =
-          1 - worker.hunger / worker.maxHunger;
+      const fullness = worker.hunger / worker.maxHunger;
+      const safeLevel = 0.75;
+      const urgentLevel = 0.35;
   
-      let dx = this.target.x - worker.x;
-      let dy = this.target.y - worker.y;
+      if (fullness >= safeLevel) {
+        return 1;
+      }
   
-      let dist = sqrt(dx * dx + dy * dy);
+      let urgency = map(fullness, safeLevel, urgentLevel, 0, 1, true);
+      urgency = constrain(urgency, 0, 1);
   
-      return hungerNeed * 100 - dist * 0.05;
+      const distancePenalty = this._distanceTo(worker) * 0.05;
+      return 5 + urgency * 90 - distancePenalty;
   }
     perform(worker) {
-      const idx = data.foods.indexOf(this.target);
-
-      if (idx !== -1) {
+      if (this.target instanceof Food) {
+        const idx = data.foods.indexOf(this.target);
+        if (idx !== -1) {
           const food = data.foods.splice(idx, 1)[0];
-
-          worker.hunger =
-              min(worker.hunger + food.hunger,
-                  worker.maxHunger);
+          worker.hunger = min(worker.hunger + food.hunger, worker.maxHunger);
+        }
+      } else if (this.target instanceof StockPile) {
+        const idx = this.target.items.findIndex(
+          (item) => stats[item.resource]?.hunger > 0,
+        );
+        if (idx !== -1) {
+          const item = this.target.items.splice(idx, 1)[0];
+          worker.hunger = min(
+            worker.hunger + stats[item.resource].hunger,
+            worker.maxHunger,
+          );
+        }
       }
   
       this.complete();
     }
   }
 
-    class DepositTask extends Task{
-      constructor(structure){
-        super({
-          type:"deposit",
-          target:structure,
-          priority:1000,
-          workDuration:30
-        })
-      }
-      isValid(){
-        return(this.target && this.target.currentStorage < this.target.storageMax);
-      }
-      perform(worker){
-        this.target.items.push(...worker.storage);
-        worker.storage.length = 0;
-        this.complete();
-      }
-      canBeTakenByWorker(worker){
-        
-        return worker.storage.length > 0;
-      }
+  class DepositTask extends Task{
+    constructor(structure){
+      super({
+        type:"deposit",
+        target:structure,
+        priority:1000,
+        workDuration:30
+      })
     }
+    isValid(){
+      return(this.target && this.target.currentStorage < this.target.storageMax);
+    }
+    perform(worker){
+      this.target.items.push(...worker.storage);
+      worker.storage.length = 0;
+      this.complete();
+    }
+    canBeTakenByWorker(worker){
+      
+      return (worker.storage?.length ?? 0) > 0;
+    }
+  }

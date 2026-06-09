@@ -300,51 +300,8 @@ function collisionCheck(people) {
 }
 
 /* **FOOD** */
-function nearestFood(i, grid) {
-  /* checks nearby cells for food.
-    If no food is in range, a null value is returned. */
-  const cellsize = 50;
-  let nearest = null;
-  let nearestDist = Infinity;
 
-  let cellX = Math.floor((i.x + i.size / 2) / cellsize);
-  let cellY = Math.floor((i.y + i.size / 2) / cellsize);
 
-  for (let ox = -2; ox <= 2; ox++) {
-    for (let oy = -2; oy <= 2; oy++) {
-      let key = `${cellX + ox},${cellY + oy}`;
-      if (!grid.has(key)) continue;
-      for (let foodItem of grid.get(key)) {
-        let dx = i.x + i.size / 2 - (foodItem.x + foodItem.size / 2);
-        let dy = i.y + i.size / 2 - (foodItem.y + foodItem.size / 2);
-        let distanceSq = dx * dx + dy * dy;
-
-        if (distanceSq < nearestDist) {
-          nearest = foodItem;
-          nearestDist = distanceSq;
-        }
-      }
-    }
-  }
-  if (nearest) {
-    nearest.dist = Math.sqrt(nearestDist);
-  }
-  i.nearestFood = nearest;
-  return nearest;
-}
-function eat() {
-  /* checks which entities are eating. */
-  for (let i of data.people) {
-    let nearest = i.nearestFood;
-    if (nearest && isColliding(i, nearest)) {
-      let foodIndex = data.foods.indexOf(nearest);
-      if (foodIndex !== -1) {
-        data.foods.splice(foodIndex, 1);
-        i.hunger = Math.min((i.hunger += nearest.hunger), i.maxHunger);
-      }
-    }
-  }
-}
 function rotUpdate() {
   /* updates how rotted the food is */
   for (let i of data.foods) {
