@@ -1,4 +1,6 @@
+
 const BT = { SUCCESS: "SUCCESS", FAILURE: "FAILURE", RUNNING: "RUNNING" };
+const time = game.state.time
 
 class NodeBase {
   constructor(name = "Node") {
@@ -109,21 +111,29 @@ const actions = {
     if (!task.isValid()) {
       task.cancel();
       e.currentTask = null;
-      e.workTimer = 0;
+      task.workTimer = 0;
       return BT.FAILURE;
     }
 
     const seek = e.seekPoint(task.target, 20);
     // console.log(e.name, task.type, Math.floor(seek.dist));
     e.steeringTarget = seek;
-    if (seek.dist > 12) return BT.RUNNING;
+    if (seek.dist > 12) {
+      task.readyWorkers.delete(e);
+      return BT.RUNNING;
+    }
 
-    e.workTimer += worldSpeed;
-    if (e.workTimer < task.workDuration) return BT.RUNNING;
+    task.readyWorkers.add(e);
+
+    if(!task.isEveryoneReady()) return BT.RUNNING;
+
+    if (task.lastWorkFrame !== frameCount) {
+      task.workTimer += time.worldSpeed;
+      task.lastWorkFrame = frameCount;
+    }
+    if (task.workTimer < task.workDuration) return BT.RUNNING;
 
     task.perform(e);
-    e.workTimer = 0;
-    e.currentTask = null;
     return BT.SUCCESS;
   }),
 };

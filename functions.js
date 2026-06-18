@@ -55,11 +55,11 @@ function birth(i, e) {
     dependent on its roll */
   let roll = getRandomIntInclusive(1, 3);
 
-  let child = new Child(stats.child);
+  let child = new Child(game.state.stats.child);
   child.x = (i.x + e.x) / 2;
   child.y = (i.y + e.y) / 2;
   child.hunger = child.maxHunger * getRandomNumInclusive(0.5, 0.7);
-  data.people.push(child);
+  game.addPerson(child);
   if (roll === 1) {
     /* inherit from i */
     child.vel = Math.max(0.1, i.vel - getRandomNumInclusive(0.1, 0.33));
@@ -88,9 +88,9 @@ function birth(i, e) {
 }
 function death() {
   /* removes people if they should die */
-  let alive = new Set(data.people.filter(p => !p.shouldDie()))
+  let alive = new Set(game.state.people.filter(p => !p.shouldDie()))
 
-  for (let p of data.people){
+  for (let p of game.state.people){
     if (!alive.has(p)){
       p.partner = null;
       p.jobTarget = null;
@@ -104,17 +104,19 @@ function death() {
     }
   }
   
-  for (let task of taskManager.tasks){
-    if(task.assignedWorker && !alive.has(task.assignedWorker)){
-      task.release();
+  for (let task of taskManager.tasks) {
+    for (let worker of [...task.assignedWorkers]) {
+      if (!alive.has(worker)) {
+        task.release(worker);
+      }
     }
   }
 
-  let before = data.people.length;
-  data.people = Array.from(alive);
-  deathToll += before - data.people.length;
+  let before = game.state.people.length;
+  game.state.people = Array.from(alive);
+  game.state.metrics.deathToll += before - game.state.people.length;
   
-  for (let s of data.structures) {
+  for (let s of game.state.structures) {
     if (!s.workers) continue;
     s.workers = s.workers.filter(e => alive.has(e));
   }
@@ -125,7 +127,7 @@ function grow() {
   let add = [];
   let remove = [];
 
-  for (let i of data.people) {
+  for (let i of game.state.people) {
     i.age++;
     if (i.age === 18 && i.type === "kid") {
       let adult = i.growUp();
@@ -134,53 +136,83 @@ function grow() {
     }
   }
   for (let i of remove) {
-    let index = data.people.indexOf(i);
-    if (index > -1) data.people.splice(index, 1);
+    let index = game.state.people.indexOf(i);
+    if (index > -1) game.state.people.splice(index, 1);
   }
-  for (let i of add) data.people.push(i);
+  for (let i of add) game.state.people.push(i);
   if (add.length > 0) console.log(`${add.length} child/children grew up`);
 }
-function getFreaky() {
-  /* Checks for other applicable entities to reproduce with.
-    Must be >= 18, relatively full on hunger, and have a repRate of 0 to be applicable */
-  const cellsize = 50;
-  const applicable = data.people.filter((i) => i.canReproduce);
-  const grid = createGrid(applicable, cellsize);
-  const checked = new Set();
-  for (let i of applicable) {
-    /* Reset search stats for this specific person */
-    let nearest = null;
-    let nearestDistSq = Infinity;
 
-    let cellX = Math.floor((i.x + i.size / 2) / cellsize);
-    let cellY = Math.floor((i.y + i.size / 2) / cellsize);
-    /* grid check */
+function updateReproductionTasks() {
+  const candidates = game.state.people.filter(
+    (p) =>
+      p.type === "adult" &&
+      p.canReproduce &&
+      !hasActiveReproductionTask(p)
+  );
+
+  const grid = createGrid(candidates, 100);
+  const pairs = [];
+  const checked = new Set();
+
+  for (let adult of candidates) {
+    const cellX = Math.floor((adult.x + adult.size / 2) / 100);
+    const cellY = Math.floor((adult.y + adult.size / 2) / 100);
+
     for (let ox = -1; ox <= 1; ox++) {
       for (let oy = -1; oy <= 1; oy++) {
-        let key = `${cellX + ox},${cellY + oy}`;
+        const key = `${cellX + ox},${cellY + oy}`;
         if (!grid.has(key)) continue;
-        for (let e of grid.get(key)) {
-          if (e === i) continue;
-          let pairKey = i.ID < e.ID ? `${i.ID},${e.ID}` : `${e.ID},${i.ID}`;
+
+        for (let other of grid.get(key)) {
+          if (adult === other) continue;
+
+          const pairKey =
+            adult.ID < other.ID
+              ? `${adult.ID},${other.ID}`
+              : `${other.ID},${adult.ID}`;
+
           if (checked.has(pairKey)) continue;
           checked.add(pairKey);
 
-          let dx = i.x + i.size / 2 - (e.x + e.size / 2);
-          let dy = i.y + i.size / 2 - (e.y + e.size / 2);
-          let distanceSq = dx * dx + dy * dy;
+          const dx = adult.x - other.x;
+          const dy = adult.y - other.y;
+          const distSq = dx * dx + dy * dy;
 
-          if (distanceSq < nearestDistSq) {
-            nearest = e;
-            nearestDistSq = distanceSq;
-          }
+          const fullness =
+            adult.hunger / adult.maxHunger + other.hunger / other.maxHunger;
+
+          const score = fullness * 80 - Math.sqrt(distSq) * 0.03;
+
+          pairs.push({ adult, other, score });
         }
       }
     }
-    if (nearest) {
-      i.partner = nearest;
-      nearest.partner = i;
-    }
   }
+
+  pairs.sort((a, b) => b.score - a.score);
+
+  const used = new Set();
+
+  for (let pair of pairs) {
+    if (used.has(pair.adult) || used.has(pair.other)) continue;
+
+    const task = new ReproduceTask(pair.adult, pair.other);
+    taskManager.add(task);
+
+    used.add(pair.adult);
+    used.add(pair.other);
+  }
+}
+
+function hasActiveReproductionTask(person) {
+  return taskManager.tasks.some(
+    (task) =>
+      task instanceof ReproduceTask &&
+      task.status !== "completed" &&
+      task.status !== "cancelled" &&
+      task.parents.includes(person)
+  );
 }
 
 /* **COLLISION**  */
@@ -194,24 +226,7 @@ function isColliding(object1, object2) {
     return true;
   }
 }
-function touchingBoundary(obj) {
-  /* If touching boundary, reflects velocity perpendicular to the surface. */
-  let s = obj.size / 2;
-  if (obj.x > mapWidth - s) {
-    obj.direction.x *= -1;
-    obj.x = mapWidth - s;
-  } else if (obj.x < 0 + s) {
-    obj.direction.x *= -1;
-    obj.x = 0 + s;
-  }
-  if (obj.y > mapHeight - s) {
-    obj.direction.y *= -1;
-    obj.y = mapHeight - s;
-  } else if (obj.y < 0 + s) {
-    obj.direction.y *= -1;
-    obj.y = 0 + s;
-  }
-}
+
 function handleCollision(object1, object2) {
   /* Circle on circle collision physics. THIS TOOK SO LONG TO DO */
   let dx = object1.x + object1.size / 2 - (object2.x + object2.size / 2);
@@ -267,8 +282,8 @@ function handleCollision(object1, object2) {
   object2.x -= nx * ((overlap * invM2) / invMass);
   object2.y -= ny * ((overlap * invM2) / invMass);
 
-  object1.collisionCooldown = 20 * worldSpeed;
-  object2.collisionCooldown = 20 * worldSpeed;
+  object1.collisionCooldown = 20 * game.state.time.worldSpeed;
+  object2.collisionCooldown = 20 * game.state.time.worldSpeed;
 }
 function collisionCheck(people) {
   /* checks for people near one another then sends that to check if they are colliding */
@@ -304,80 +319,81 @@ function collisionCheck(people) {
 
 function rotUpdate() {
   /* updates how rotted the food is */
-  for (let i of data.foods) {
+  for (let i of game.state.foods) {
     i.rotTime -= i.rotRate;
   }
-  data.foods = data.foods.filter((c) => c.rotTime > 0);
+  game.state.foods = game.state.foods.filter((c) => c.rotTime > 0);
 }
 
 /* **INPUT / UI** */
 function mouseClicked() {
-  if (totalDist > 10) {
-    totalDist = 0;
+  if (game.state.totalDragDist > 10) {
+    game.state.totalDragDist = 0;
     return;
   }
-  if (data.activeUI) {
-    data.activeUI.handleclick(mouseX, mouseY);
+  if (game.state.ui) {
+    game.state.ui.handleclick(mouseX, mouseY);
     return;
   }
-  if (data.builderUI && data.builderUI.placing) {
-    data.builderUI.handleclick(mouseX, mouseY);
+  if (game.state.builderUI && game.state.builderUI.placing) {
+    game.state.builderUI.handleclick(mouseX, mouseY);
     return;
   }
 
-  if (mouseY > winHeight && mouseY < winHeight + buttonheight) {
-    if (mouseY > winHeight) {
+  if (mouseY > game.state.config.winHeight && mouseY < game.state.config.winHeight + game.state.config.buttonheight) {
+    if (mouseY > game.state.config.winHeight) {
       if (mouseX > 0 && mouseX < 100) {
         healthbar = !healthbar;
+        game.state.metrics.showHealthbars = !game.state.metrics.showHealthbars;
       }
       if (mouseX > 100 && mouseX < 200) {
-        if (worldSpeed === 1) worldSpeed *= 5;
-        else if (worldSpeed === 5) worldSpeed /= 5;
+        if (game.state.time.worldSpeed === 1) game.state.time.worldSpeed *= 5;
+        else if (game.state.time.worldSpeed === 5) game.state.time.worldSpeed /= 5;
       }
       if (mouseX > 200 && mouseX < 300) {
-        if (!data.builderUI) data.builderUI = new BuilderUI();
-        data.activeUI = data.builderUI;
-        data.selected = `builder`;
+        if (!game.state.builderUI) game.state.builderUI = new BuilderUI();
+        game.state.ui = game.state.builderUI;
+        game.state.selected = `builder`;
       }
       return;
     }
   }
 }
 function mousePressed() {
-  if (mouseY > winHeight) return;
-  if (data.activeUI) return;
-  totalDist = 0;
-  isdragging = true;
-  dragPosX = mouseX + camX;
-  dragPosY = mouseY + camY;
+  if (mouseY > game.state.config.winHeight) return;
+  if (game.state.ui) return;
+  game.state.totalDragDist = 0;
+  game.state.isDragging = true;
+  game.state.dragPos.x = mouseX + game.state.camera.x;
+  game.state.dragPos.y = mouseY + game.state.camera.y;
 }
 function mouseDragged() {
-  if (!isdragging) return;
-  camX = dragPosX - mouseX;
-  camY = dragPosY - mouseY;
-  totalDist += dist(mouseX, pmouseX, mouseY, pmouseY);
-  camX = constrain(camX, 0, mapWidth - winWidth);
-  camY = constrain(camY, 0, mapHeight - winHeight);
+  if (!game.state.isDragging) return;
+  game.state.camera.x = game.state.dragPos.x - mouseX;
+  game.state.camera.y = game.state.dragPos.y - mouseY;
+  game.state.totalDragDist += dist(mouseX, pmouseX, mouseY, pmouseY);
+  game.state.camera.x = constrain(game.state.camera.x, 0, game.state.config.mapWidth - game.state.config.winWidth);
+  game.state.camera.y = constrain(game.state.camera.y, 0, game.state.config.mapHeight - game.state.config.winHeight);
 }
 function mouseReleased() {
-  isdragging = false;
+  game.state.isDragging = false;
 }
 
 function keyPressed() {
   if (keyCode === 27) {
-    data.selected = null;
-    data.activeUI = null;
-    if (data.builderUI) data.builderUI.placing = false;
+    game.state.selected = null;
+    game.state.ui = null;
+    if (game.state.builderUI) game.state.builderUI.placing = false;
     scrollTarget = 0;
   }
 }
 
 function placeStructure(config, x, y) {
   let cfg = { ...config };
-  cfg.x = round((x + camX) / cfg.width) * cfg.width;
-  cfg.y = round((y + camY) / cfg.height) * cfg.height;
+  cfg.x = round((x + game.state.camera.x) / cfg.width) * cfg.width;
+  cfg.y = round((y + game.state.camera.y) / cfg.height) * cfg.height;
 
-  let occupied = data.structures.some((c) => c.x === cfg.x && c.y === cfg.y);
+  let occupied = game.state.structures.some((c) => c.x === cfg.x && c.y === cfg.y);
   if (occupied) {
     console.log(`Tile occupied`);
     return;
@@ -389,47 +405,34 @@ function placeStructure(config, x, y) {
     return;
   }
 
-  data.structures.push(new StructureClass(cfg));
+  game.state.structures.push(new StructureClass(cfg));
 }
 
 function doubleClicked() {
   console.log(`Double click`);
-  let x = mouseX + camX;
-  let y = mouseY + camY;
+  let x = mouseX + game.state.camera.x;
+  let y = mouseY + game.state.camera.y;
 
-  let occupied = data.structures.find(
+  let occupied = game.state.structures.find(
     (c) => x > c.x && x < c.x + c.width && y > c.y && y < c.y + c.height,
   );
   if (occupied) {
-    data.selected = occupied;
+    game.state.selected = occupied;
     let UIClass = occupied.uiClass;
-    console.log(data.selected);
+    console.log(game.state.selected);
     if (!UIClass) return;
-    data.activeUI = new UIClass(occupied);
+    game.state.ui = new UIClass(occupied);
   }
 }
 
 function mouseWheel(e) {
-  if (data.activeUI) data.activeUI.updateScroll(e.delta);
+  if (game.state.ui) game.state.ui.updateScroll(e.delta);
 }
 
 
 function getDayTimeFloat(){
-  return dayTime / dayLength
+  const time = game.state.time
+  return time.dayTime / time.dayLength
   
 }
 
-function makeWorkerTree(jobSubTree){
-    return new Selector([
-      sequences.ifHungryEat,
-
-      new Sequence([
-          conditions.hasStorage,
-          actions.depositStorage
-      ]),
-
-      jobSubTree,
-
-      actions.wander
-    ])    
-} 
